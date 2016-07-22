@@ -49,9 +49,9 @@ class ComposeTransformParamAccumulator {
       // new = cur . delta
 
       // combine the translations
-      retParam->head(3) = curParam->head(3) + (curRotation * deltaParam->head(3));
-      retRotation = curRotation * deltaRotation;
-      retParam->tail(3) = retRotation.axis() * retRotation.angle();
+      retParam.head(3) = curParam->head(3) + (curRotation * deltaParam->head(3));
+      RotationT retRotation(curRotation * deltaRotation);
+      retParam.tail(3) = retRotation.axis() * retRotation.angle();
 
       return retParam;
     }
