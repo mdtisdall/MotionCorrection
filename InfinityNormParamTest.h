@@ -1,13 +1,13 @@
-#ifndef InfinityNormConvergenceTest
-#define InfinityNormConvergenceTest
+#ifndef InfinityNormParamTest
+#define InfinityNormParamTest
 
 
 template< typename T >
-class InfinityNormConvergenceTest {
+class InfinityNormParamTest {
   public:
     typedef typename Eigen::Matrix<T, 6, 1> ParamT;
 
-    InfinityNormConvergenceTest(const T paramUpdateInfinityNormLimit) :
+    InfinityNormParamTest(const T paramUpdateInfinityNormLimit) :
       paramUpdateInfinityNormLimit(paramUpdateInfinityNormLimit) {}
 
     bool operator()(ParamT *paramUpdate) const {

@@ -91,8 +91,6 @@ class Weighted_Gauss_Newton_New_Grad :
         this->cubeSize, this->cubeCenter,
         gradientAndHessianComputeTime);
 
-      this->residualHessianLDL.compute(this->approxResidualHessian);
-
       Parent::minimize(newVolume, initialParam, finalParam,
         maxSteps, stepSizeScale, stepSizeLimit,
         convergenceTest, 

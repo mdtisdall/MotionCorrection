@@ -18,12 +18,14 @@
 
 template <
   typename _InterpolatorT,
-  typename _ConvergenceTestT 
+  typename _ConvergenceTestT,
+  typename _GradientUpdateTestT 
   >
 class Gauss_Newton_Base{
   public:
     typedef _InterpolatorT InterpolatorT;
     typedef _ConvergenceTestT ConvergenceTestT;
+    typedef _GradientUpdateTestT GradientUpdateTestT;
     typedef typename InterpolatorT::VolumeT VolumeT;
     typedef typename InterpolatorT::CoordT CoordT;
     typedef typename VolumeT::value_type T;
@@ -62,6 +64,7 @@ class Gauss_Newton_Base{
     static void generateResidualGradientAndApproxHessian(
       ResidualGradientT *residualGradient,
       ResidualHessianT *approxResidualHessian,
+      ResidualHessianLDLT *residualHessianLDL,
       const PointListT *pointList,
       const VolumeT *refdz,
       const VolumeT *refdy,
@@ -109,14 +112,16 @@ class Gauss_Newton_Base{
       residualGradient->row(5).array() -=
         pointList->row(0).array() * refDyMat.array();
 
-//      std::cout << "residualGradient->row(0).norm(): " <<
-//        residualGradient->row(0).norm() << std::endl; 
+      //std::cout << "residualGradient->col(0): " <<
+      //  residualGradient->col(0).transpose() << std::endl;
 
       // now we can compute the Hessian
       approxResidualHessian->setZero(6, 6);
      
       approxResidualHessian->template selfadjointView<Eigen::Upper>().rankUpdate(
         *(residualGradient));
+
+      residualHessianLDL->compute(*approxResidualHessian);
       
       if(NULL != elapsedTime) { 
         gettimeofday(&timeAfter, NULL);
@@ -215,22 +220,22 @@ class Gauss_Newton_Base{
       residual.noalias() = interpPoints - (*newVolVec);
     }
 
-    void accumulateParam(const ParamT *deltaParam, ParamT *finalParam) {
+    void accumulateParam(const ParamT *deltaParam, ParamT *curParam) {
       typedef Eigen::AngleAxis<T> RotationT;
 
-      const Eigen::Matrix<T, 3, 1> finalRotVec = finalParam->tail(3);
+      const Eigen::Matrix<T, 3, 1> curRotVec = curParam->tail(3);
 
-      const T finalAngle = finalRotVec.norm();
+      const T curAngle = curRotVec.norm();
 
-      Eigen::Matrix<T, 3, 1> finalRotAxis;
-      if(0 == finalAngle) {
-        finalRotAxis << 1, 0, 0;
+      Eigen::Matrix<T, 3, 1> curRotAxis;
+      if(0 == curAngle) {
+        curRotAxis << 1, 0, 0;
       }
       else {
-        finalRotAxis = finalRotVec.normalized();
+        curRotAxis = curRotVec.normalized();
       }
 
-      RotationT finalRotation(finalAngle, finalRotAxis);
+      RotationT curRotation(curAngle, curRotAxis);
       
       const Eigen::Matrix<T, 3, 1> deltaRotVec = deltaParam->tail(3);
 
@@ -246,30 +251,34 @@ class Gauss_Newton_Base{
       
       RotationT deltaRotation(deltaAngle, deltaRotAxis);
       
-      // To update points, we want to apply final, then delta. However,
+      // To update points, we want to apply cur, then delta. However,
       // we update points with the inverse of the transform we have
       // parameterized. Thus, updating points with a single new transform is
       // equivalent to applying:
-      // new^-1 = delta^-1 . final^-1
+      // new^-1 = delta^-1 . cur^-1
       // and so
-      // new = final . delta
+      // new = cur . delta
 
       // combine the translations
-      finalParam->head(3) += (finalRotation * deltaParam->head(3));
-      finalRotation = finalRotation * deltaRotation;
-      finalParam->tail(3) = finalRotation.axis() * finalRotation.angle();
+      curParam->head(3) += (curRotation * deltaParam->head(3));
+      curRotation = curRotation * deltaRotation;
+      curParam->tail(3) = curRotation.axis() * curRotation.angle();
     }
   
 
 
     void minimize(
       const VolumeT *newVolume,
+      const VolumeT *refdz,
+      const VolumeT *refdy,
+      const VolumeT *refdx,
       const ParamT *initialParam,
       ParamT *finalParam,
       const size_t maxSteps = 20,
       const T stepSizeScale = 0.25,
       const T stepSizeLimit = 10e-6,
       const ConvergenceTestT *convergenceTest = NULL, 
+      const GradientUpdateTestT *gradientUpdateTest = NULL, 
       size_t *elapsedSteps = NULL,
       double *elapsedTime = NULL 
       ) {
@@ -283,17 +292,9 @@ class Gauss_Newton_Base{
       // establish point coordinates based on initialParam guess
       //
       
-      PointListT accumulatedPoints = pointList; 
 
-      transformPointListWithParam(initialParam,
-        &pointList, &accumulatedPoints);
-
-      *finalParam = *initialParam; 
-      
-      ParamT curParam;
-      curParam << 0, 0, 0, 0, 0, 0;
+      ParamT curParam = *initialParam;
       ParamT prevParam = curParam;
-
 
       NewVolVecT newVolVec(
         newVolume->buffer,
@@ -303,7 +304,7 @@ class Gauss_Newton_Base{
       size_t step = 0;
       
       this->computeResidual(newVolume, &newVolVec,
-        &accumulatedPoints, &curParam);
+        &pointList, &curParam);
       
       T prevResidualNorm = this->residual.norm();
         
@@ -311,11 +312,11 @@ class Gauss_Newton_Base{
 
       
       for(; step < maxSteps; step++) {
-//        std::cout << "-------" << std::endl; 
-//        std::cout << "step " << step << std::endl; 
-//        std::cout << "curParam: " << std::endl <<
-//          curParam.transpose() << std::endl; 
-//        std::cout << "residualNorm: " << prevResidualNorm << std::endl; 
+        //std::cout << "-------" << std::endl; 
+        //std::cout << "step " << step << std::endl; 
+        //std::cout << "curParam: " << std::endl <<
+        //  curParam.transpose() << std::endl; 
+        //std::cout << "residualNorm: " << prevResidualNorm << std::endl; 
 
         //
         // compute the direction of the next step
@@ -323,14 +324,17 @@ class Gauss_Newton_Base{
         
         reducedResidual.noalias() = this->residualGradient * this->residual;
     
-//        std::cout << "reducedResidual: " << std::endl <<
-//          reducedResidual << std::endl;
+        //std::cout << "reducedResidual: " << std::endl <<
+        //  reducedResidual << std::endl;
 
         // This equation solves the parameter update, but with signs negated
         ParamT negParamUpdateDirection;
         negParamUpdateDirection.noalias() =
           this->residualHessianLDL.solve(reducedResidual);
-        
+       
+        //std::cout << "negParamUpdateDirection: " << std::endl <<
+        //  negParamUpdateDirection << std::endl;
+
         //
         // perform backtracking line search in the direction of the next step 
         //
@@ -348,7 +352,7 @@ class Gauss_Newton_Base{
           ParamT newParam = curParam - negParamUpdate;
        
           this->computeResidual(newVolume, &newVolVec,
-            &accumulatedPoints, &newParam);
+            &pointList, &newParam);
 
           T newResidualNorm = this->residual.norm();
 
@@ -373,18 +377,40 @@ class Gauss_Newton_Base{
         //
         // now check to see if the steps have converged
         //
-
+        
         if( NULL != convergenceTest && (*convergenceTest)(&negParamUpdate) ) {
             step++; 
             break; 
-        } 
-      }
+        }
 
-      accumulateParam(&curParam, finalParam);
+        //
+        // now check to see if we need to update our gradients
+        //
+        
+        if(
+          NULL != gradientUpdateTest &&
+          (*gradientUpdateTest)(&negParamUpdate)) {
+
+          PointListT accumulatedPoints;
+
+          transformPointListWithParam(&curParam,
+            &pointList, &accumulatedPoints);
+    
+          generateResidualGradientAndApproxHessian(
+            &residualGradient, &approxResidualHessian, 
+            &residualHessianLDL, &accumulatedPoints,
+            refdz, refdy, refdx, cubeSize, cubeCenter);
+
+          //std::cout << "approxResidualHessian:" << std::endl <<
+          //  approxResidualHessian << std::endl;
+        }
+      }
 
       if(NULL != elapsedSteps) {
         *elapsedSteps = step; 
       }
+
+      *finalParam = curParam;
 
     }
 

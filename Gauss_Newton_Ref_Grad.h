@@ -5,14 +5,17 @@
 
 template <
   typename _InterpolatorT,
-  typename _ConvergenceTestT 
+  typename _ConvergenceTestT,
+  typename _GradientUpdateTestT 
   >
 class Gauss_Newton_Ref_Grad :
-  Gauss_Newton_Base<_InterpolatorT, _ConvergenceTestT>{
+  Gauss_Newton_Base<_InterpolatorT, _ConvergenceTestT, _GradientUpdateTestT>{
   public:
-    typedef Gauss_Newton_Base<_InterpolatorT, _ConvergenceTestT> Parent;
+    typedef Gauss_Newton_Base<
+      _InterpolatorT, _ConvergenceTestT,_GradientUpdateTestT > Parent;
     typedef typename Parent::InterpolatorT InterpolatorT;
     typedef typename Parent::ConvergenceTestT ConvergenceTestT;
+    typedef typename Parent::GradientUpdateTestT GradientUpdateTestT;
     typedef typename Parent::VolumeT VolumeT;
     typedef typename Parent::CoordT CoordT;
     typedef typename Parent::T T;
@@ -25,18 +28,20 @@ class Gauss_Newton_Ref_Grad :
       const VolumeT *refdx,
       double *gradientAndHessianComputeTime
       ) :
-      Parent(interpRef, refdz->cubeSize) {
-      
+      Parent(interpRef, refdz->cubeSize),
+      refdz(refdz),
+      refdy(refdy),
+      refdx(refdx) {
+
       this->generateResidualGradientAndApproxHessian(
         &(this->residualGradient), &(this->approxResidualHessian),
+        &(this->residualHessianLDL),
         &(this->pointList),
         refdz, refdy, refdx, this->cubeSize, this->cubeCenter,
         gradientAndHessianComputeTime);
      
-//      std::cout << "approxResidualHessian:" << std::endl <<
-//        approxResidualHessian << std::endl;
-
-      this->residualHessianLDL.compute(this->approxResidualHessian);
+      //std::cout << "approxResidualHessian:" << std::endl <<
+      //  this->approxResidualHessian << std::endl;
     }
     
     
@@ -48,6 +53,7 @@ class Gauss_Newton_Ref_Grad :
       const T stepSizeScale = 0.25,
       const T stepSizeLimit = 0,
       const ConvergenceTestT *convergenceTest = NULL, 
+      const GradientUpdateTestT *gradientUpdateTest = NULL, 
       size_t *elapsedSteps = NULL,
       double *elapsedTime = NULL 
       ) {
@@ -58,9 +64,10 @@ class Gauss_Newton_Ref_Grad :
         gettimeofday(&timeBefore, NULL);
       }
 
-      Parent::minimize(newVolume, initialParam, finalParam,
+      Parent::minimize(newVolume, refdz, refdy, refdx,
+        initialParam, finalParam,
         maxSteps, stepSizeScale, stepSizeLimit,
-        convergenceTest, 
+        convergenceTest, gradientUpdateTest, 
         elapsedSteps, NULL);
       
       if(NULL != elapsedTime) { 
@@ -74,6 +81,9 @@ class Gauss_Newton_Ref_Grad :
 
   protected: 
     typedef typename Parent::NewVolVecT NewVolVecT;
+    const VolumeT *refdz;
+    const VolumeT *refdy;
+    const VolumeT *refdx;
 
 };
 

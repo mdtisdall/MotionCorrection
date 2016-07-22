@@ -58,8 +58,6 @@ class Weighted_Gauss_Newton_Ref_Grad :
      
 //      std::cout << "approxResidualHessian:" << std::endl <<
 //        approxResidualHessian << std::endl;
-
-      this->residualHessianLDL.compute(this->approxResidualHessian);
     }
 
   protected:

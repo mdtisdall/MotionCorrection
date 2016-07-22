@@ -1,12 +1,13 @@
 #include "catch.hpp"
 
 #include "Gauss_Newton_Ref_Grad.h"
-#include "Gauss_Newton_New_Grad.h"
+//#include "Gauss_Newton_New_Grad.h"
 
 #include "CubicBSplineInterpolator.h"
 #include "VolumeAtAddressable.h"
 
-#include "TwoNormConvergenceTest.h"
+#include "TwoNormParamTest.h"
+#include "TrueParamTest.h"
 
 #include "CentralDifferenceDifferentiator.h"
 
@@ -17,7 +18,7 @@
 TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be instantiated") {
   typedef float dataT;
   typedef VolumeAtAddressable< FFTWBuffer<dataT> > VolumeT; 
-  typedef CubicBSplineInterpolator<VolumeT, float> InterpolatorT; 
+  typedef CubicBSplineInterpolator<VolumeT, dataT> InterpolatorT; 
 
   const size_t cubeSize = 32;
   const size_t cubeVectorLength = cubeSize * cubeSize * cubeSize;
@@ -43,8 +44,10 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
     VolumeT dz(cubeSize, cubeVectorLength);
     volDiffer.zDerivative(&dz);
 
-    typedef TwoNormConvergenceTest<dataT> ConvergenceTestT;
-    typedef Gauss_Newton_Ref_Grad<InterpolatorT, ConvergenceTestT> MinimizerT; 
+    typedef TwoNormParamTest<dataT> ConvergenceTestT;
+    typedef TwoNormParamTest<dataT> GradientUpdateTestT;
+    typedef Gauss_Newton_Ref_Grad<
+      InterpolatorT, ConvergenceTestT, GradientUpdateTestT > MinimizerT; 
     typedef MinimizerT::ParamT ParamT;
     
     MinimizerT minimizer(&interpolator, &dz, &dy, &dx,
@@ -60,19 +63,17 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
       ParamT finalParam;
  
       size_t maxSteps = 20;
-      float stepSizeScale = 0.25;
-      float stepSizeLimit = 1.0;
+      dataT stepSizeScale = 0.25;
+      dataT stepSizeLimit = 1.0;
 
-      const dataT paramUpdate2NormLimit = 1e-6;
- 
-      ConvergenceTestT convergenceTest(paramUpdate2NormLimit);
+      ConvergenceTestT convergenceTest(1e-6);
 
       double elapsedTime;
       size_t elapsedSteps;
   
       minimizer.minimize(&volume, &initialParam, &finalParam,
         maxSteps, stepSizeScale, stepSizeLimit,
-        &convergenceTest,
+        &convergenceTest, NULL,
         &elapsedSteps, &elapsedTime);
  
         for(int i = 0; i < 6; i++) {
@@ -87,11 +88,13 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
 
 
 TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be instantiated from image data") {
-    typedef float dataT;
+    typedef double dataT;
     typedef VolumeAtAddressable< FFTWBuffer<dataT> > VolumeT; 
-    typedef CubicBSplineInterpolator<VolumeT, float> InterpolatorT; 
-    typedef TwoNormConvergenceTest<dataT> ConvergenceTestT;
-    typedef Gauss_Newton_Ref_Grad<InterpolatorT, ConvergenceTestT> MinimizerT; 
+    typedef CubicBSplineInterpolator<VolumeT, dataT> InterpolatorT; 
+    typedef TwoNormParamTest<dataT> ConvergenceTestT;
+    typedef TrueParamTest<dataT> GradientUpdateTestT;
+    typedef Gauss_Newton_Ref_Grad<
+      InterpolatorT, ConvergenceTestT, GradientUpdateTestT > MinimizerT; 
     typedef MinimizerT::ParamT ParamT;
 
     const size_t cubeSize = 32;
@@ -129,7 +132,9 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
       WARN("elapsed time computing gradient and Hessian: "
         << gradientAndHessianComputeTime << " ms");
 
-      SECTION("and registering two images returns identical result to Mathematica") {
+      SECTION(std::string("and registering two images ") +
+        std::string("without updating gradients ") + 
+        std::string("returns identical result to Mathematica")) {
         ParamT initialParam;
         initialParam << 0, 0, 0, 0, 0, 0;
   
@@ -138,15 +143,15 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
         // We force this to go exactly 20 steps, so that we get to the same
         // point as the Mathematica code
         size_t maxSteps = 20;
-        float stepSizeScale = 0.25;
-        float stepSizeLimit = 1.0;
+        dataT stepSizeScale = 0.25;
+        dataT stepSizeLimit = 1.0;
  
         double elapsedTime;
         size_t elapsedSteps;
   
         minimizer.minimize(&newVolume, &initialParam, &finalParam,
         maxSteps, stepSizeScale, stepSizeLimit,
-        NULL, 
+        NULL,  NULL,
         &elapsedSteps, &elapsedTime);
 
         std::vector<dataT> paramSolution(6);
@@ -154,6 +159,44 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
         REQUIRE(6 * sizeof(dataT)
               == BinaryFile< std::vector<dataT> >::read(&paramSolution,
                   "Gauss_Newton_Ref_Grad_tests/parameterOutput.dat"));
+
+        for(int i = 0; i < 6; i++) {
+          REQUIRE(paramSolution[i] == Approx(finalParam(i)));
+        }
+
+        WARN("elapsed time: " << elapsedTime << " ms");
+        WARN("elapsed steps: " << elapsedSteps);
+      }
+
+      SECTION(std::string("and registering two images ") +
+        std::string("updating gradients every step ") + 
+        std::string("returns identical result to Mathematica")) {
+        ParamT initialParam;
+        initialParam << 0, 0, 0, 0, 0, 0;
+  
+        ParamT finalParam;
+
+        // We force this to go exactly 20 steps, so that we get to the same
+        // point as the Mathematica code
+        size_t maxSteps = 20;
+        dataT stepSizeScale = 0.25;
+        dataT stepSizeLimit = 1.0;
+ 
+        double elapsedTime;
+        size_t elapsedSteps;
+ 
+        GradientUpdateTestT gradientUpdateTest;
+
+        minimizer.minimize(&newVolume, &initialParam, &finalParam,
+        maxSteps, stepSizeScale, stepSizeLimit,
+        NULL,  &gradientUpdateTest,
+        &elapsedSteps, &elapsedTime);
+
+        std::vector<dataT> paramSolution(6);
+
+        REQUIRE(6 * sizeof(dataT)
+              == BinaryFile< std::vector<dataT> >::read(&paramSolution,
+                  "Gauss_Newton_Ref_Grad_tests/gradientUpdateParameterOutput.dat"));
 
         for(int i = 0; i < 6; i++) {
           REQUIRE(paramSolution[i] == Approx(finalParam(i)));

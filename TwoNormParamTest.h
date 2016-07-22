@@ -1,13 +1,13 @@
-#ifndef TwoNormConvergenceTest_h
-#define TwoNormConvergenceTest_h
+#ifndef TwoNormParamTest_h
+#define TwoNormParamTest_h
 
 
 template< typename T >
-class TwoNormConvergenceTest {
+class TwoNormParamTest {
   public:
     typedef typename Eigen::Matrix<T, 6, 1> ParamT;
 
-    TwoNormConvergenceTest(const T paramUpdate2NormLimit) :
+    TwoNormParamTest(const T paramUpdate2NormLimit) :
       paramUpdate2NormLimit(paramUpdate2NormLimit) {}
 
     bool operator()(ParamT *paramUpdate) const {

@@ -1,13 +1,13 @@
-#ifndef MMConvergenceTest
-#define MMConvergenceTest
+#ifndef MMParamTest
+#define MMParamTest
 
 
 template< typename T >
-class MMConvergenceTest {
+class MMParamTest {
   public:
     typedef typename Eigen::Matrix<T, 6, 1> ParamT;
 
-    MMConvergenceTest(
+    MMParamTest(
       const T paramUpdateMMLimit,
       const T paramUpdateTransScaleMM,
       const T paramUpdateRotScaleMM
