@@ -6,13 +6,21 @@
 template <
   typename _InterpolatorT,
   typename _ConvergenceTestT,
-  typename _GradientUpdateTestT 
+  typename _GradientUpdateTestT,
+  typename _ParamAccumulatorT 
   >
 class Gauss_Newton_Ref_Grad :
-  Gauss_Newton_Base<_InterpolatorT, _ConvergenceTestT, _GradientUpdateTestT>{
+  Gauss_Newton_Base<
+    _InterpolatorT, 
+    _ConvergenceTestT, 
+    _GradientUpdateTestT,
+    _ParamAccumulatorT>{
   public:
     typedef Gauss_Newton_Base<
-      _InterpolatorT, _ConvergenceTestT,_GradientUpdateTestT > Parent;
+      _InterpolatorT,
+      _ConvergenceTestT,
+      _GradientUpdateTestT,
+      _ParamAccumulatorT> Parent;
     typedef typename Parent::InterpolatorT InterpolatorT;
     typedef typename Parent::ConvergenceTestT ConvergenceTestT;
     typedef typename Parent::GradientUpdateTestT GradientUpdateTestT;

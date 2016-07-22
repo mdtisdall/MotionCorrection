@@ -1,13 +1,14 @@
 #include "catch.hpp"
 
 #include "Gauss_Newton_Ref_Grad.h"
-//#include "Gauss_Newton_New_Grad.h"
 
 #include "CubicBSplineInterpolator.h"
 #include "VolumeAtAddressable.h"
 
 #include "TwoNormParamTest.h"
 #include "TrueParamTest.h"
+
+#include "SumParamAccumulator.h"
 
 #include "CentralDifferenceDifferentiator.h"
 
@@ -46,8 +47,12 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
 
     typedef TwoNormParamTest<dataT> ConvergenceTestT;
     typedef TwoNormParamTest<dataT> GradientUpdateTestT;
+    typedef SumParamAccumulator<dataT> ParamAccumulatorT;
     typedef Gauss_Newton_Ref_Grad<
-      InterpolatorT, ConvergenceTestT, GradientUpdateTestT > MinimizerT; 
+      InterpolatorT,
+      ConvergenceTestT,
+      GradientUpdateTestT,
+      ParamAccumulatorT > MinimizerT; 
     typedef MinimizerT::ParamT ParamT;
     
     MinimizerT minimizer(&interpolator, &dz, &dy, &dx,
@@ -93,8 +98,12 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
     typedef CubicBSplineInterpolator<VolumeT, dataT> InterpolatorT; 
     typedef TwoNormParamTest<dataT> ConvergenceTestT;
     typedef TrueParamTest<dataT> GradientUpdateTestT;
+    typedef SumParamAccumulator<dataT> ParamAccumulatorT;
     typedef Gauss_Newton_Ref_Grad<
-      InterpolatorT, ConvergenceTestT, GradientUpdateTestT > MinimizerT; 
+      InterpolatorT,
+      ConvergenceTestT,
+      GradientUpdateTestT,
+      ParamAccumulatorT > MinimizerT; 
     typedef MinimizerT::ParamT ParamT;
 
     const size_t cubeSize = 32;
