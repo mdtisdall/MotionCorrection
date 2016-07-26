@@ -10,7 +10,7 @@ class TwoNormParamTest {
     TwoNormParamTest(const T paramUpdate2NormLimit) :
       paramUpdate2NormLimit(paramUpdate2NormLimit) {}
 
-    bool operator()(ParamT *paramUpdate) const {
+    bool operator()(const ParamT *paramUpdate) const {
       return (paramUpdate->norm() < paramUpdate2NormLimit);
     }
 

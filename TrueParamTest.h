@@ -9,7 +9,7 @@ class TrueParamTest {
 
     TrueParamTest() {}
 
-    bool operator()(ParamT *paramUpdate) const {
+    bool operator()(const ParamT *paramUpdate) const {
       return true;
     }
 };

@@ -15,15 +15,26 @@
 
 template <
   typename _InterpolatorT,
-  typename _ConvergenceTestT,
-  typename _CircularMaskOpT
+  typename _ParamAccumulatorT,
+  typename _CircularMaskOpT,
+  typename _ConvergenceTestT = void,
+  typename _GradientUpdateTestT = void
   >
 class Weighted_Gauss_Newton_New_Grad : 
-  Gauss_Newton_Base<_InterpolatorT, _ConvergenceTestT> {
+  Gauss_Newton_Base <
+    _InterpolatorT, 
+    _ParamAccumulatorT,
+    _ConvergenceTestT, 
+    _GradientUpdateTestT >{
   public:
-    typedef Gauss_Newton_Base<_InterpolatorT, _ConvergenceTestT> Parent;
+    typedef Gauss_Newton_Base <
+      _InterpolatorT,
+      _ParamAccumulatorT,
+      _ConvergenceTestT,
+      _GradientUpdateTestT > Parent;
     typedef typename Parent::InterpolatorT InterpolatorT;
     typedef typename Parent::ConvergenceTestT ConvergenceTestT;
+    typedef typename Parent::GradientUpdateTestT GradientUpdateTestT;
     typedef typename Parent::VolumeT VolumeT;
     typedef typename Parent::CoordT CoordT;
     typedef typename Parent::T T;
@@ -66,6 +77,7 @@ class Weighted_Gauss_Newton_New_Grad :
       const T stepSizeScale = 0.25,
       const T stepSizeLimit = 0,
       ConvergenceTestT *convergenceTest = NULL, 
+      GradientUpdateTestT *gradientUpdateTest = NULL, 
       size_t *elapsedSteps = NULL, 
       double *elapsedTime = NULL,
       double *gradientAndHessianComputeTime = NULL
@@ -86,14 +98,16 @@ class Weighted_Gauss_Newton_New_Grad :
 
       this->generateResidualGradientAndApproxHessian(
         &(this->residualGradient), &(this->approxResidualHessian),
+        &(this->residualHessianLDL),
         &(this->pointList),
         &weightedNewdz, &weightedNewdy, &weightedNewdx,
         this->cubeSize, this->cubeCenter,
         gradientAndHessianComputeTime);
 
-      Parent::minimize(newVolume, initialParam, finalParam,
+      Parent::minimize(newVolume, &weightedNewdz, &weightedNewdy, &weightedNewdx,
+        initialParam, finalParam,
         maxSteps, stepSizeScale, stepSizeLimit,
-        convergenceTest, 
+        convergenceTest, gradientUpdateTest, 
         elapsedSteps);
 
       if(NULL != elapsedTime) { 

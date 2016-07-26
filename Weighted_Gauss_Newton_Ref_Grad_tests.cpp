@@ -5,7 +5,11 @@
 #include "CubicBSplineInterpolator.h"
 #include "VolumeAtAddressable.h"
 
-#include "TwoNormConvergenceTest.h"
+#include "TwoNormParamTest.h"
+#include "TrueParamTest.h"
+
+#include "SumParamAccumulator.h"
+#include "ComposeTransformParamAccumulator.h"
 
 #include "CentralDifferenceDifferentiator.h"
 
@@ -26,9 +30,13 @@ TEST_CASE("a weighted Gauss-Newton minimizer using reference-image gradients can
  
   typedef VolumeAtAddressable< FFTWBuffer<dataT> > MaskVolumeT; 
   typedef CircularMaskOp< VolumeT, MaskVolumeT> CircularMaskOpT;
-  typedef TwoNormConvergenceTest<dataT> ConvergenceTestT;
+  typedef SumParamAccumulator<dataT> ParamAccumulatorT;
+  typedef TwoNormParamTest<dataT> ConvergenceTestT;
   typedef Weighted_Gauss_Newton_Ref_Grad<
-    InterpolatorT, ConvergenceTestT, CircularMaskOpT > MinimizerT; 
+    InterpolatorT,
+    ParamAccumulatorT,
+    CircularMaskOpT,
+    ConvergenceTestT> MinimizerT; 
   typedef MinimizerT::ParamT ParamT;
  
   VolumeT volume(cubeSize);
@@ -79,7 +87,7 @@ TEST_CASE("a weighted Gauss-Newton minimizer using reference-image gradients can
 
     minimizer.minimize(&volume, &initialParam, &finalParam,
       maxSteps, stepSizeScale, stepSizeLimit,
-      &convergenceTest, 
+      &convergenceTest,  NULL,
       &elapsedSteps, &elapsedTime);
 
     WARN("elapsed time: " << elapsedTime << " ms");
@@ -109,12 +117,8 @@ TEST_CASE("a weighted Gauss-Newton minimizer using reference-image gradients can
   typedef CircularMaskOp< DataVolumeT, ImageMaskVolumeT> DataCircularMaskOpT;
   typedef SymmetricHalfVolumeAtAddressable< FFTWBuffer<dataT> >
     FourierMaskVolumeT; 
-  typedef TwoNormConvergenceTest<dataT> ConvergenceTestT;
   typedef CircularMaskOp< ComplexVolumeT, FourierMaskVolumeT>
     ComplexDataCircularMaskOpT;
-  typedef Weighted_Gauss_Newton_Ref_Grad<
-    InterpolatorT, ConvergenceTestT, DataCircularMaskOpT > MinimizerT; 
-  typedef MinimizerT::ParamT ParamT;
   
   const dataT maskScale =
     1.0/((dataT) cubeVectorLength);
@@ -168,14 +172,24 @@ TEST_CASE("a weighted Gauss-Newton minimizer using reference-image gradients can
   
   DataCircularMaskOpT imageMaskOp(cubeSize);
 
-  MinimizerT minimizer(&interpolator, &imageMaskOp,
-    &dz, &dy, &dx,
-    &gradientAndHessianComputeTime);
-        
-  WARN("elapsed time computing gradient and Hessian: "
-    << gradientAndHessianComputeTime << " ms");
 
-  SECTION("and registering two images returns identical result to Mathematica") {
+  SECTION(std::string("and registering two images ") +
+    std::string("without updating gradients ") + 
+    std::string("returns identical result to Mathematica")) {
+  
+    typedef SumParamAccumulator<dataT> ParamAccumulatorT;
+    
+    typedef Weighted_Gauss_Newton_Ref_Grad<
+      InterpolatorT, ParamAccumulatorT, DataCircularMaskOpT > MinimizerT; 
+    typedef MinimizerT::ParamT ParamT;
+
+    MinimizerT minimizer(&interpolator, &imageMaskOp,
+      &dz, &dy, &dx,
+      &gradientAndHessianComputeTime);
+          
+    WARN("elapsed time computing gradient and Hessian: "
+      << gradientAndHessianComputeTime << " ms");
+    
     ParamT initialParam;
     initialParam << 0, 0, 0, 0, 0, 0;
   
@@ -192,7 +206,7 @@ TEST_CASE("a weighted Gauss-Newton minimizer using reference-image gradients can
   
     minimizer.minimize(&maskedNewVolume, &initialParam, &finalParam,
       maxSteps, stepSizeScale, stepSizeLimit,
-      NULL, 
+      NULL,  NULL,
       &elapsedSteps, &elapsedTime);
 
     std::vector<dataT> paramSolution(6);
@@ -206,7 +220,127 @@ TEST_CASE("a weighted Gauss-Newton minimizer using reference-image gradients can
               "Weighted_Gauss_Newton_Ref_Grad_tests/parameterOutput.dat"));
 
     for(int i = 0; i < 6; i++) {
-      REQUIRE(paramSolution[i] == Approx(finalParam(i)).epsilon(0.001));
+      REQUIRE(paramSolution[i] == Approx(finalParam(i)));
+    }
+  }
+
+
+  SECTION(std::string("and registering two images ") +
+    std::string("updating gradients every step ") + 
+    std::string("returns identical result to Mathematica")) {
+  
+    typedef void ConvergenceTestT;
+    typedef TrueParamTest<dataT> GradientUpdateTestT;
+    typedef SumParamAccumulator<dataT> ParamAccumulatorT;
+    
+    typedef Weighted_Gauss_Newton_Ref_Grad<
+      InterpolatorT,
+      ParamAccumulatorT,
+      DataCircularMaskOpT,
+      ConvergenceTestT,
+      GradientUpdateTestT> MinimizerT; 
+    typedef MinimizerT::ParamT ParamT;
+
+    MinimizerT minimizer(&interpolator, &imageMaskOp,
+      &dz, &dy, &dx,
+      &gradientAndHessianComputeTime);
+          
+    WARN("elapsed time computing gradient and Hessian: "
+      << gradientAndHessianComputeTime << " ms");
+    
+    ParamT initialParam;
+    initialParam << 0, 0, 0, 0, 0, 0;
+  
+    ParamT finalParam;
+
+    // We force this to stop as soon as we take a bad step, so that we get to
+    // the same point as the Mathematica code
+    size_t maxSteps = 20;
+    const dataT stepSizeScale = 0.25;
+    const dataT stepSizeLimit = 1.0;
+ 
+    double elapsedTime;
+    size_t elapsedSteps;
+  
+    GradientUpdateTestT gradientUpdateTest;
+
+    minimizer.minimize(&maskedNewVolume, &initialParam, &finalParam,
+      maxSteps, stepSizeScale, stepSizeLimit,
+      NULL,  &gradientUpdateTest,
+      &elapsedSteps, &elapsedTime);
+
+    std::vector<dataT> paramSolution(6);
+
+    WARN("elapsed time: " << elapsedTime << " ms");
+    WARN("elapsed steps: " << elapsedSteps);
+    WARN("finalParam: " << finalParam.transpose());
+
+    REQUIRE(6 * sizeof(dataT)
+          == BinaryFile< std::vector<dataT> >::read(&paramSolution,
+              "Weighted_Gauss_Newton_Ref_Grad_tests/gradientUpdateParameterOutput.dat"));
+
+    for(int i = 0; i < 6; i++) {
+      REQUIRE(paramSolution[i] == Approx(finalParam(i)));
+    }
+  }
+
+  SECTION(std::string("and registering two images ") +
+    std::string("updating gradients every step ") + 
+    std::string("and using compose accumulator ") + 
+    std::string("returns identical result to Mathematica")) {
+  
+    typedef void ConvergenceTestT;
+    typedef TrueParamTest<dataT> GradientUpdateTestT;
+    typedef ComposeTransformParamAccumulator<dataT> ParamAccumulatorT;
+    
+    typedef Weighted_Gauss_Newton_Ref_Grad<
+      InterpolatorT,
+      ParamAccumulatorT,
+      DataCircularMaskOpT,
+      ConvergenceTestT,
+      GradientUpdateTestT> MinimizerT; 
+    typedef MinimizerT::ParamT ParamT;
+
+    MinimizerT minimizer(&interpolator, &imageMaskOp,
+      &dz, &dy, &dx,
+      &gradientAndHessianComputeTime);
+          
+    WARN("elapsed time computing gradient and Hessian: "
+      << gradientAndHessianComputeTime << " ms");
+    
+    ParamT initialParam;
+    initialParam << 0, 0, 0, 0, 0, 0;
+  
+    ParamT finalParam;
+
+    // We force this to stop as soon as we take a bad step, so that we get to
+    // the same point as the Mathematica code
+    size_t maxSteps = 20;
+    const dataT stepSizeScale = 0.25;
+    const dataT stepSizeLimit = 1.0;
+ 
+    double elapsedTime;
+    size_t elapsedSteps;
+  
+    GradientUpdateTestT gradientUpdateTest;
+
+    minimizer.minimize(&maskedNewVolume, &initialParam, &finalParam,
+      maxSteps, stepSizeScale, stepSizeLimit,
+      NULL,  &gradientUpdateTest,
+      &elapsedSteps, &elapsedTime);
+
+    std::vector<dataT> paramSolution(6);
+
+    WARN("elapsed time: " << elapsedTime << " ms");
+    WARN("elapsed steps: " << elapsedSteps);
+    WARN("finalParam: " << finalParam.transpose());
+
+    REQUIRE(6 * sizeof(dataT)
+          == BinaryFile< std::vector<dataT> >::read(&paramSolution,
+              "Weighted_Gauss_Newton_Ref_Grad_tests/gradientUpdateComposeAccumulateParameterOutput.dat"));
+
+    for(int i = 0; i < 6; i++) {
+      REQUIRE(paramSolution[i] == Approx(finalParam(i)));
     }
   }
 }

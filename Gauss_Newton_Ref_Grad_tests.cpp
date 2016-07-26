@@ -47,13 +47,11 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
     volDiffer.zDerivative(&dz);
 
     typedef TwoNormParamTest<dataT> ConvergenceTestT;
-    typedef TwoNormParamTest<dataT> GradientUpdateTestT;
     typedef SumParamAccumulator<dataT> ParamAccumulatorT;
     typedef Gauss_Newton_Ref_Grad<
       InterpolatorT,
-      ConvergenceTestT,
-      GradientUpdateTestT,
-      ParamAccumulatorT > MinimizerT; 
+      ParamAccumulatorT,
+      ConvergenceTestT > MinimizerT; 
     typedef MinimizerT::ParamT ParamT;
     
     MinimizerT minimizer(&interpolator, &dz, &dy, &dx,
@@ -132,13 +130,9 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
         std::string("without updating gradients ") + 
         std::string("returns identical result to Mathematica")) {
         
-        typedef TwoNormParamTest<dataT> ConvergenceTestT;
-        typedef TrueParamTest<dataT> GradientUpdateTestT;
         typedef SumParamAccumulator<dataT> ParamAccumulatorT;
         typedef Gauss_Newton_Ref_Grad<
           InterpolatorT,
-          ConvergenceTestT,
-          GradientUpdateTestT,
           ParamAccumulatorT > MinimizerT; 
         typedef MinimizerT::ParamT ParamT;
       
@@ -185,14 +179,14 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
         std::string("updating gradients every step ") + 
         std::string("returns identical result to Mathematica")) {
         
-        typedef TwoNormParamTest<dataT> ConvergenceTestT;
+        typedef void ConvergenceTestT;
         typedef TrueParamTest<dataT> GradientUpdateTestT;
         typedef SumParamAccumulator<dataT> ParamAccumulatorT;
         typedef Gauss_Newton_Ref_Grad<
           InterpolatorT,
+          ParamAccumulatorT,
           ConvergenceTestT,
-          GradientUpdateTestT,
-          ParamAccumulatorT > MinimizerT; 
+          GradientUpdateTestT > MinimizerT; 
         typedef MinimizerT::ParamT ParamT;
       
         MinimizerT minimizer(&interpolator, &dz, &dy, &dx,
@@ -241,14 +235,13 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
         std::string("and using compose accumulator ") + 
         std::string("returns identical result to Mathematica")) {
         
-        typedef TwoNormParamTest<dataT> ConvergenceTestT;
+        typedef void ConvergenceTestT;
         typedef TrueParamTest<dataT> GradientUpdateTestT;
         typedef ComposeTransformParamAccumulator<dataT> ParamAccumulatorT;
         typedef Gauss_Newton_Ref_Grad<
           InterpolatorT,
-          ConvergenceTestT,
-          GradientUpdateTestT,
-          ParamAccumulatorT > MinimizerT; 
+          ParamAccumulatorT, ConvergenceTestT,
+          GradientUpdateTestT > MinimizerT; 
         typedef MinimizerT::ParamT ParamT;
       
         MinimizerT minimizer(&interpolator, &dz, &dy, &dx,

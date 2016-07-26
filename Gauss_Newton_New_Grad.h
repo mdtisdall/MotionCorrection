@@ -5,14 +5,25 @@
 
 template <
   typename _InterpolatorT,
-  typename _ConvergenceTestT 
+  typename _ParamAccumulatorT,
+  typename _ConvergenceTestT = void,
+  typename _GradientUpdateTestT = void
   >
 class Gauss_Newton_New_Grad : 
-  Gauss_Newton_Base<_InterpolatorT, _ConvergenceTestT>{
+  Gauss_Newton_Base<
+    _InterpolatorT,
+    _ParamAccumulatorT,
+    _ConvergenceTestT,
+    _GradientUpdateTestT>{
   public:
-    typedef Gauss_Newton_Base<_InterpolatorT, _ConvergenceTestT> Parent;
+    typedef Gauss_Newton_Base <
+      _InterpolatorT,
+      _ParamAccumulatorT,
+      _ConvergenceTestT,
+      _GradientUpdateTestT > Parent;
     typedef typename Parent::InterpolatorT InterpolatorT;
     typedef typename Parent::ConvergenceTestT ConvergenceTestT;
+    typedef typename Parent::GradientUpdateTestT GradientUpdateTestT;
     typedef typename Parent::VolumeT VolumeT;
     typedef typename Parent::CoordT CoordT;
     typedef typename Parent::T T;
@@ -35,6 +46,7 @@ class Gauss_Newton_New_Grad :
       const T stepSizeScale = 0.25,
       const T stepSizeLimit = 0,
       const ConvergenceTestT *convergenceTest = NULL, 
+      const GradientUpdateTestT *gradientUpdateTest = NULL, 
       size_t *elapsedSteps = NULL, 
       double *elapsedTime = NULL,
       double *gradientAndHessianComputeTime = NULL
@@ -47,13 +59,15 @@ class Gauss_Newton_New_Grad :
       
       this->generateResidualGradientAndApproxHessian(
         &(this->residualGradient), &(this->approxResidualHessian),
-        &this->pointList,  
+        &(this->residualHessianLDL),  
+        &this->pointList, 
         newdz, newdy, newdx, this->cubeSize, this->cubeCenter,
         gradientAndHessianComputeTime);
      
-      Parent::minimize(newVolume, initialParam, finalParam,
+      Parent::minimize(newVolume, newdz, newdy, newdx,
+        initialParam, finalParam,
         maxSteps, stepSizeScale, stepSizeLimit,
-        convergenceTest, 
+        convergenceTest, gradientUpdateTest,
         elapsedSteps, NULL);
 
       if(NULL != elapsedTime) { 

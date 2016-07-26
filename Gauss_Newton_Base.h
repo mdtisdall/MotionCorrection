@@ -16,11 +16,13 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "TestHelper.h"
+
 template <
   typename _InterpolatorT,
-  typename _ConvergenceTestT,
-  typename _GradientUpdateTestT,
-  typename _ParamAccumulatorT 
+  typename _ParamAccumulatorT,
+  typename _ConvergenceTestT = void,
+  typename _GradientUpdateTestT = void
   >
 class Gauss_Newton_Base{
   public:
@@ -222,9 +224,6 @@ class Gauss_Newton_Base{
       residual.noalias() = interpPoints - (*newVolVec);
     }
 
-  
-
-
     void minimize(
       const VolumeT *newVolume,
       const VolumeT *refdz,
@@ -337,7 +336,9 @@ class Gauss_Newton_Base{
         // now check to see if the steps have converged
         //
         
-        if( NULL != convergenceTest && (*convergenceTest)(&paramUpdate) ) {
+        if(
+          TestHelper<ConvergenceTestT>::eval(convergenceTest, &paramUpdate)
+          ) {
             step++; 
             break; 
         }
@@ -345,11 +346,11 @@ class Gauss_Newton_Base{
         //
         // now check to see if we need to update our gradients
         //
-        
-        if(
-          NULL != gradientUpdateTest &&
-          (*gradientUpdateTest)(&paramUpdate)) {
 
+        if(
+          TestHelper<GradientUpdateTestT>::eval(
+            gradientUpdateTest, &paramUpdate) ) {
+          
           PointListT accumulatedPoints;
 
           transformPointListWithParam(&curParam,

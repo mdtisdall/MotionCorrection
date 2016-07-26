@@ -15,15 +15,26 @@
 
 template <
   typename _InterpolatorT,
-  typename _ConvergenceTestT,
-  typename _CircularMaskOpT
+  typename _ParamAccumulatorT,
+  typename _CircularMaskOpT,
+  typename _ConvergenceTestT = void,
+  typename _GradientUpdateTestT = void
   >
 class Weighted_Gauss_Newton_Ref_Grad :
-  Gauss_Newton_Base<_InterpolatorT, _ConvergenceTestT> {
+  Gauss_Newton_Base <
+    _InterpolatorT, 
+    _ParamAccumulatorT,
+    _ConvergenceTestT, 
+    _GradientUpdateTestT >{
   public:
-    typedef Gauss_Newton_Base<_InterpolatorT, _ConvergenceTestT> Parent;
+    typedef Gauss_Newton_Base <
+      _InterpolatorT,
+      _ParamAccumulatorT,
+      _ConvergenceTestT,
+      _GradientUpdateTestT > Parent;
     typedef typename Parent::InterpolatorT InterpolatorT;
     typedef typename Parent::ConvergenceTestT ConvergenceTestT;
+    typedef typename Parent::GradientUpdateTestT GradientUpdateTestT;
     typedef typename Parent::VolumeT VolumeT;
     typedef typename Parent::CoordT CoordT;
     typedef typename Parent::T T;
@@ -39,18 +50,14 @@ class Weighted_Gauss_Newton_Ref_Grad :
       double *gradientAndHessianComputeTime
       ) :
       Parent(interpRef, refdz->cubeSize),
-      circularMaskOp(circularMaskOp) {
+      circularMaskOp(circularMaskOp),
+      weightedRefdz(computeWeightedDerivative(refdz, circularMaskOp)),
+      weightedRefdy(computeWeightedDerivative(refdy, circularMaskOp)),
+      weightedRefdx(computeWeightedDerivative(refdx, circularMaskOp)) {
      
-      VolumeT weightedRefdz(this->cubeSize);
-      VolumeT weightedRefdy(this->cubeSize);
-      VolumeT weightedRefdx(this->cubeSize);
-
-      circularMaskOp->applyMask(refdz, &weightedRefdz); 
-      circularMaskOp->applyMask(refdy, &weightedRefdy); 
-      circularMaskOp->applyMask(refdx, &weightedRefdx);
-
       this->generateResidualGradientAndApproxHessian(
         &(this->residualGradient), &(this->approxResidualHessian),
+        &(this->residualHessianLDL),
         &(this->pointList),
         &weightedRefdz, &weightedRefdy, &weightedRefdx,
         this->cubeSize, this->cubeCenter,
@@ -63,6 +70,14 @@ class Weighted_Gauss_Newton_Ref_Grad :
   protected:
     typedef typename Parent::NewVolVecT NewVolVecT;
     typedef typename Parent::PointListT PointListT;
+
+    static VolumeT computeWeightedDerivative(
+      const VolumeT *refD,
+      const CircularMaskOpT *circularMaskOp) {
+      VolumeT weightedRefD(refD->cubeSize);
+      circularMaskOp->applyMask(refD, &weightedRefD);
+      return weightedRefD;
+    }
 
     virtual void computeResidual(
       const VolumeT *newVol,
@@ -83,7 +98,8 @@ class Weighted_Gauss_Newton_Ref_Grad :
       const size_t maxSteps = 20,
       const T stepSizeScale = 0.25,
       const T stepSizeLimit = 0,
-      ConvergenceTestT *convergenceTest = NULL, 
+      const ConvergenceTestT *convergenceTest = NULL, 
+      const GradientUpdateTestT *gradientUpdateTest = NULL, 
       size_t *elapsedSteps = NULL, 
       double *elapsedTime = NULL 
       ) {
@@ -93,9 +109,10 @@ class Weighted_Gauss_Newton_Ref_Grad :
         gettimeofday(&timeBefore, NULL);
       }
 
-      Parent::minimize(newVolume, initialParam, finalParam,
+      Parent::minimize(newVolume, &weightedRefdz, &weightedRefdy, &weightedRefdx,
+        initialParam, finalParam,
         maxSteps, stepSizeScale, stepSizeLimit,
-        convergenceTest, 
+        convergenceTest, gradientUpdateTest, 
         elapsedSteps);
 
       if(NULL != elapsedTime) { 
@@ -109,6 +126,9 @@ class Weighted_Gauss_Newton_Ref_Grad :
     
   protected: 
     const CircularMaskOpT *circularMaskOp;
+    const VolumeT weightedRefdz;
+    const VolumeT weightedRefdy;
+    const VolumeT weightedRefdx;
 
 };
 

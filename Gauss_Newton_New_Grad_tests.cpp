@@ -6,7 +6,11 @@
 #include "CubicBSplineInterpolator.h"
 #include "VolumeAtAddressable.h"
 
-#include "TwoNormConvergenceTest.h"
+#include "TwoNormParamTest.h"
+#include "TrueParamTest.h"
+
+#include "SumParamAccumulator.h"
+#include "ComposeTransformParamAccumulator.h"
 
 #include "CentralDifferenceDifferentiator.h"
 
@@ -44,8 +48,12 @@ TEST_CASE("a Gauss-Newton minimizer using new-image gradients can be instantiate
     VolumeT dz(cubeSize, cubeVectorLength);
     volDiffer.zDerivative(&dz);
     
-    typedef TwoNormConvergenceTest<dataT> ConvergenceTestT;
-    typedef Gauss_Newton_New_Grad<InterpolatorT, ConvergenceTestT> MinimizerT; 
+    typedef TwoNormParamTest<dataT> ConvergenceTestT;
+    typedef SumParamAccumulator<dataT> ParamAccumulatorT;
+    typedef Gauss_Newton_New_Grad <
+      InterpolatorT,
+      ParamAccumulatorT,
+      ConvergenceTestT > MinimizerT; 
     typedef MinimizerT::ParamT ParamT;
     
     MinimizerT minimizer(&interpolator, cubeSize);
@@ -71,7 +79,7 @@ TEST_CASE("a Gauss-Newton minimizer using new-image gradients can be instantiate
       minimizer.minimize(&volume, &dz, &dy, &dx,
         &initialParam, &finalParam,
         maxSteps, stepSizeScale, stepSizeLimit,
-        &convergenceTest,
+        &convergenceTest, NULL,
         &elapsedSteps, &elapsedTime, &gradientAndHessianComputeTime);
       
       WARN("elapsed time computing gradient and Hessian: "
@@ -90,12 +98,9 @@ TEST_CASE("a Gauss-Newton minimizer using new-image gradients can be instantiate
 
 
 TEST_CASE("a Gauss-Newton minimizer using new-image gradients can be instantiated from image data") {
-    typedef float dataT;
+    typedef double dataT;
     typedef VolumeAtAddressable< FFTWBuffer<dataT> > VolumeT; 
-    typedef CubicBSplineInterpolator<VolumeT, float> InterpolatorT; 
-    typedef TwoNormConvergenceTest<dataT> ConvergenceTestT;
-    typedef Gauss_Newton_New_Grad<InterpolatorT, ConvergenceTestT> MinimizerT; 
-    typedef MinimizerT::ParamT ParamT;
+    typedef CubicBSplineInterpolator<VolumeT, dataT> InterpolatorT; 
 
     const size_t cubeSize = 32;
     const size_t cubeVectorLength = cubeSize * cubeSize * cubeSize;
@@ -127,9 +132,18 @@ TEST_CASE("a Gauss-Newton minimizer using new-image gradients can be instantiate
      
       double gradientAndHessianComputeTime;
 
-      MinimizerT minimizer(&interpolator, cubeSize);
         
-      SECTION("and registering two images returns identical result to Mathematica") {
+      SECTION(std::string("and registering two images ") +
+        std::string("without updating gradients ") + 
+        std::string("returns identical result to Mathematica")) {
+    
+        typedef SumParamAccumulator<dataT> ParamAccumulatorT;
+        typedef Gauss_Newton_New_Grad<
+          InterpolatorT, ParamAccumulatorT> MinimizerT; 
+        typedef MinimizerT::ParamT ParamT;
+      
+        MinimizerT minimizer(&interpolator, cubeSize);
+        
         ParamT initialParam;
         initialParam << 0, 0, 0, 0, 0, 0;
   
@@ -138,8 +152,8 @@ TEST_CASE("a Gauss-Newton minimizer using new-image gradients can be instantiate
         // We force this to go exactly 20 steps, so that we get to the same
         // point as the Mathematica code
         size_t maxSteps = 20;
-        float stepSizeScale = 0.25;
-        float stepSizeLimit = 1.0;
+        dataT stepSizeScale = 0.25;
+        dataT stepSizeLimit = 1.0;
  
         double elapsedTime;
         size_t elapsedSteps;
@@ -147,7 +161,7 @@ TEST_CASE("a Gauss-Newton minimizer using new-image gradients can be instantiate
         minimizer.minimize(&newVolume, &dz, &dy, &dx,
           &initialParam, &finalParam,
           maxSteps, stepSizeScale, stepSizeLimit,
-          NULL, 
+          NULL, NULL,
           &elapsedSteps, &elapsedTime, &gradientAndHessianComputeTime);
       
         WARN("elapsed time computing gradient and Hessian: "
@@ -159,6 +173,120 @@ TEST_CASE("a Gauss-Newton minimizer using new-image gradients can be instantiate
         REQUIRE(6 * sizeof(dataT)
               == BinaryFile< std::vector<dataT> >::read(&paramSolution,
                   "Gauss_Newton_New_Grad_tests/parameterOutput.dat"));
+
+        for(int i = 0; i < 6; i++) {
+          REQUIRE(paramSolution[i] == Approx(finalParam(i)));
+        }
+
+        WARN("elapsed time: " << elapsedTime << " ms");
+        WARN("elapsed steps: " << elapsedSteps);
+      }
+
+
+      SECTION(std::string("and registering two images ") +
+        std::string("updating gradients every step ") + 
+        std::string("returns identical result to Mathematica")) {
+    
+        typedef void ConvergenceTestT;
+        typedef TrueParamTest<dataT> GradientUpdateTestT;
+        typedef SumParamAccumulator<dataT> ParamAccumulatorT;
+        typedef Gauss_Newton_New_Grad<
+          InterpolatorT,
+          ParamAccumulatorT,
+          ConvergenceTestT,
+          GradientUpdateTestT > MinimizerT; 
+        typedef MinimizerT::ParamT ParamT; 
+
+        MinimizerT minimizer(&interpolator, cubeSize);
+
+        ParamT initialParam;
+        initialParam << 0, 0, 0, 0, 0, 0;
+  
+        ParamT finalParam;
+
+        // We force this to go exactly 20 steps, so that we get to the same
+        // point as the Mathematica code
+        size_t maxSteps = 20;
+        dataT stepSizeScale = 0.25;
+        dataT stepSizeLimit = 1.0;
+ 
+        double elapsedTime;
+        size_t elapsedSteps;
+        
+        GradientUpdateTestT gradientUpdateTest;
+  
+        minimizer.minimize(&newVolume, &dz, &dy, &dx,
+          &initialParam, &finalParam,
+          maxSteps, stepSizeScale, stepSizeLimit,
+          NULL, &gradientUpdateTest,
+          &elapsedSteps, &elapsedTime, &gradientAndHessianComputeTime);
+      
+        WARN("elapsed time computing gradient and Hessian: "
+          << gradientAndHessianComputeTime << " ms");
+
+
+        std::vector<dataT> paramSolution(6);
+
+        REQUIRE(6 * sizeof(dataT)
+              == BinaryFile< std::vector<dataT> >::read(&paramSolution,
+                  "Gauss_Newton_New_Grad_tests/gradientUpdateParameterOutput.dat"));
+
+        for(int i = 0; i < 6; i++) {
+          REQUIRE(paramSolution[i] == Approx(finalParam(i)));
+        }
+
+        WARN("elapsed time: " << elapsedTime << " ms");
+        WARN("elapsed steps: " << elapsedSteps);
+      }
+
+      SECTION(std::string("and registering two images ") +
+        std::string("updating gradients every step ") + 
+        std::string("and using compose accumulator ") + 
+        std::string("returns identical result to Mathematica")) {
+    
+        typedef void ConvergenceTestT;
+        typedef TrueParamTest<dataT> GradientUpdateTestT;
+        typedef ComposeTransformParamAccumulator<dataT> ParamAccumulatorT;
+        typedef Gauss_Newton_New_Grad<
+          InterpolatorT,
+          ParamAccumulatorT,
+          ConvergenceTestT,
+          GradientUpdateTestT > MinimizerT; 
+        typedef MinimizerT::ParamT ParamT; 
+
+        MinimizerT minimizer(&interpolator, cubeSize);
+
+        ParamT initialParam;
+        initialParam << 0, 0, 0, 0, 0, 0;
+  
+        ParamT finalParam;
+
+        // We force this to go exactly 20 steps, so that we get to the same
+        // point as the Mathematica code
+        size_t maxSteps = 20;
+        dataT stepSizeScale = 0.25;
+        dataT stepSizeLimit = 1.0;
+ 
+        double elapsedTime;
+        size_t elapsedSteps;
+        
+        GradientUpdateTestT gradientUpdateTest;
+  
+        minimizer.minimize(&newVolume, &dz, &dy, &dx,
+          &initialParam, &finalParam,
+          maxSteps, stepSizeScale, stepSizeLimit,
+          NULL, &gradientUpdateTest,
+          &elapsedSteps, &elapsedTime, &gradientAndHessianComputeTime);
+      
+        WARN("elapsed time computing gradient and Hessian: "
+          << gradientAndHessianComputeTime << " ms");
+
+
+        std::vector<dataT> paramSolution(6);
+
+        REQUIRE(6 * sizeof(dataT)
+              == BinaryFile< std::vector<dataT> >::read(&paramSolution,
+                  "Gauss_Newton_New_Grad_tests/gradientUpdateComposeAccumulateParameterOutput.dat"));
 
         for(int i = 0; i < 6; i++) {
           REQUIRE(paramSolution[i] == Approx(finalParam(i)));
