@@ -1,5 +1,5 @@
-#ifndef MMParamTest
-#define MMParamTest
+#ifndef MMParamTest_h
+#define MMParamTest_h
 
 
 template< typename T >
@@ -16,12 +16,12 @@ class MMParamTest {
       paramUpdateTransScaleMM(paramUpdateTransScaleMM),
       paramUpdateRotScaleMM(paramUpdateRotScaleMM) {}
 
-    bool operator()(ParamT *paramUpdate) const {
-      T paramUpdateMMScore = negParamUpdate.head(3).norm() * 
+    bool operator()(const ParamT *paramUpdate) const {
+      T paramUpdateMMScore = paramUpdate->head(3).norm() * 
         paramUpdateTransScaleMM;
 
       // paramUpdateMMScore += sqrt(2.0 * (1.0 -
-      //   cos(negParamUpdate.tail(3).norm()))) * 
+      //   cos(paramUpdate->tail(3).norm()))) * 
       //   paramUpdateRotScaleMM;
 
       // While the above is correct, both the cos and sqrt are
@@ -29,7 +29,7 @@ class MMParamTest {
       // sqrt(2.0 * (1.0 - cos(x))) ~= x
       // which allows us to approximate the above via
 
-      paramUpdateMMScore += negParamUpdate.tail(3).norm() * 
+      paramUpdateMMScore += paramUpdate->tail(3).norm() * 
         paramUpdateRotScaleMM;
 
       return (paramUpdateMMScore < paramUpdateMMLimit);

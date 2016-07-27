@@ -269,11 +269,11 @@ class Gauss_Newton_Base{
 
       
       for(; step < maxSteps; step++) {
-        std::cout << "-------" << std::endl; 
-        std::cout << "step " << step << std::endl; 
-        std::cout << "curParam: " << std::endl <<
-          curParam.transpose() << std::endl; 
-        std::cout << "residualNorm: " << prevResidualNorm << std::endl; 
+//        std::cout << "-------" << std::endl; 
+//        std::cout << "step " << step << std::endl; 
+//        std::cout << "curParam: " << std::endl <<
+//          curParam.transpose() << std::endl; 
+//        std::cout << "residualNorm: " << prevResidualNorm << std::endl; 
 
         //
         // compute the direction of the next step

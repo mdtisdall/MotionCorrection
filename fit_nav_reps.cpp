@@ -1,16 +1,10 @@
 #include "Weighted_Gauss_Newton_Ref_Grad.h"
 #include "Weighted_Gauss_Newton_New_Grad.h"
 
+#include "Algorithms.h"
+
 #include "TricubicInterpolator.h"
 #include "CubicBSplineInterpolator.h"
-#include "VolumeAtAddressable.h"
-
-#include "CentralDifferenceDifferentiator.h"
-
-#include "FFTOp.h"
-#include "FFTWBuffer.h"
-
-#include "CircularMaskOp.h"
 
 #include "BinaryFile.h"
 
@@ -22,11 +16,11 @@
 
 #include <tclap/CmdLine.h>
 
+using namespace Algorithms;
+
 int main(int argc, char* argv[]) {
-  typedef float dataT;
-  typedef VolumeAtAddressable< FFTWBuffer<dataT> > VolumeT; 
-  typedef TricubicInterpolator<VolumeT, float> TricubicInterpolatorT; 
-  typedef CubicBSplineInterpolator<VolumeT, float> CubicBSplineInterpolatorT; 
+  typedef TricubicInterpolator<VolumeT, dataT> TricubicInterpolatorT; 
+  typedef CubicBSplineInterpolator<VolumeT, dataT> CubicBSplineInterpolatorT; 
   
   size_t cubeSize;
   std::string basePath;
@@ -59,23 +53,6 @@ int main(int argc, char* argv[]) {
 
   const size_t cubeVectorLength = cubeSize * cubeSize * cubeSize;
 
-  typedef std::complex<float> complexT;
-  typedef FFTOp<dataT> DataFFTOpT;
-  typedef DataFFTOpT::spatialVolumeT DataVolumeT; 
-  typedef DataFFTOpT::fourierVolumeT ComplexVolumeT; 
-  typedef CircularMaskOp< DataVolumeT, DataVolumeT> DataCircularMaskOpT;
-  typedef CircularMaskOp< ComplexVolumeT, 
-    SymmetricHalfVolumeAtAddressable< FFTWBuffer<dataT> > >
-    ComplexDataCircularMaskOpT;
-  typedef Weighted_Gauss_Newton_Ref_Grad<
-    TricubicInterpolatorT, DataCircularMaskOpT > TricubicRefGradMinimizerT; 
-  typedef Weighted_Gauss_Newton_Ref_Grad<
-    CubicBSplineInterpolatorT, DataCircularMaskOpT > CubicBSplineRefGradMinimizerT; 
-  typedef Weighted_Gauss_Newton_New_Grad<
-    TricubicInterpolatorT, DataCircularMaskOpT > TricubicNewGradMinimizerT; 
-  typedef Weighted_Gauss_Newton_New_Grad<
-    CubicBSplineInterpolatorT, DataCircularMaskOpT > CubicBSplineNewGradMinimizerT; 
-  typedef CubicBSplineRefGradMinimizerT::ParamT ParamT;
   
   ComplexDataCircularMaskOpT fourierMaskOp(cubeSize);
   DataVolumeT maskedRefVolume(cubeSize);
@@ -147,19 +124,34 @@ int main(int argc, char* argv[]) {
 
     DataCircularMaskOpT imageMaskOp(cubeSize);
   
-    CubicBSplineRefGradMinimizerT cubicBSplineRefGradMinimizer(
+    Algorithm1<CubicBSplineInterpolatorT> algo1CubicBSplineMinimizer(
       &cubicBSplineInterpolator, &imageMaskOp,
       &dz, &dy, &dx, NULL);
     
-    TricubicRefGradMinimizerT tricubicRefGradMinimizer(
-      &tricubicInterpolator, &imageMaskOp,
+    Algorithm2<CubicBSplineInterpolatorT> algo2CubicBSplineMinimizer(
+      &cubicBSplineInterpolator, &imageMaskOp,
       &dz, &dy, &dx, NULL);
     
-    CubicBSplineNewGradMinimizerT cubicBSplineNewGradMinimizer(
+    Algorithm3<CubicBSplineInterpolatorT> algo3CubicBSplineMinimizer(
       &cubicBSplineInterpolator, cubeSize, &imageMaskOp);
     
-    TricubicNewGradMinimizerT tricubicNewGradMinimizer(
-      &tricubicInterpolator, cubeSize, &imageMaskOp);
+    Algorithm4<CubicBSplineInterpolatorT> algo4CubicBSplineMinimizer(
+      &cubicBSplineInterpolator, cubeSize, &imageMaskOp);
+    
+    Algorithm5<CubicBSplineInterpolatorT> algo5CubicBSplineMinimizer(
+      &cubicBSplineInterpolator, &imageMaskOp,
+      &dz, &dy, &dx, NULL);
+    
+    Algorithm6<CubicBSplineInterpolatorT> algo6CubicBSplineMinimizer(
+      &cubicBSplineInterpolator, &imageMaskOp,
+      &dz, &dy, &dx, NULL);
+    
+    Algorithm7<CubicBSplineInterpolatorT> algo7CubicBSplineMinimizer(
+      &cubicBSplineInterpolator, cubeSize, &imageMaskOp);
+    
+    Algorithm8<CubicBSplineInterpolatorT> algo8CubicBSplineMinimizer(
+      &cubicBSplineInterpolator, cubeSize, &imageMaskOp);
+    
           
     DataVolumeT maskedNewVolume(cubeSize);
     VolumeT newVolume(cubeSize);
@@ -189,48 +181,51 @@ int main(int argc, char* argv[]) {
       const dataT stepSizeScale = 0.25;
       const dataT stepSizeLimit = 1e-5;
   
-      const dataT paramUpdate2NormLimit = 0;
-      //const dataT paramUpdateInfinityNormLimit = 1e-6;
-      const dataT paramUpdateInfinityNormLimit = 0; 
       const dataT paramUpdateMMLimit = 0.01;
       
+      ConvergenceTestT convergenceTest(
+        paramUpdateMMLimit,
+        translationScaleMM,
+        rotationScaleMM);
+     
+      GradientUpdateTestT gradientUpdateTest;
+
       std::cout << "----------" << std::endl;
       std::cout << "step " << step << std::endl;
     
       { 
-        double tricubicRefGradElapsedTime;
-        size_t tricubicRefGradElapsedSteps;
-        
-        tricubicRefGradMinimizer.minimize(&maskedNewVolume, &initialParam, &finalParam,
+        double elapsedTime;
+        size_t elapsedSteps;
+       
+        algo1CubicBSplineMinimizer.minimize(&maskedNewVolume, &initialParam, &finalParam,
           maxSteps, stepSizeScale, stepSizeLimit,
-          paramUpdate2NormLimit, paramUpdateInfinityNormLimit,
-          paramUpdateMMLimit, translationScaleMM, rotationScaleMM,
-          &tricubicRefGradElapsedSteps, &tricubicRefGradElapsedTime);
+          &convergenceTest, NULL,
+          &elapsedSteps, &elapsedTime);
         
-        outputFile << tricubicRefGradElapsedTime << " " << tricubicRefGradElapsedSteps
+        outputFile << elapsedTime << " " << elapsedSteps
           << " " << finalParam.transpose() << std::endl;
       
-        std::cout << "tricubic ref grad elapsed time: " << tricubicRefGradElapsedTime << " ms" << std::endl;
-        std::cout << "tricubic ref grad elapsed steps: " << tricubicRefGradElapsedSteps << std::endl;
+        std::cout << "algo 1 cubic b-spline elapsed time: " << elapsedTime << " ms" << std::endl;
+        std::cout << "algo 1 cubic b-spline elapsed steps: " << elapsedSteps << std::endl;
       }
       
-      {
-        double cubicBSplineRefGradElapsedTime;
-        size_t cubicBSplineRefGradElapsedSteps;
-        
-        cubicBSplineRefGradMinimizer.minimize(&maskedNewVolume, &initialParam, &finalParam,
-          maxSteps, stepSizeScale, stepSizeLimit,
-          paramUpdate2NormLimit, paramUpdateInfinityNormLimit,
-          paramUpdateMMLimit, translationScaleMM, rotationScaleMM,
-          &cubicBSplineRefGradElapsedSteps, &cubicBSplineRefGradElapsedTime); 
-        
-        outputFile << cubicBSplineRefGradElapsedTime << " " << cubicBSplineRefGradElapsedSteps
-          << " " << finalParam.transpose() << std::endl;
+      { 
+        double elapsedTime;
+        size_t elapsedSteps;
+       
 
-        std::cout << "cubic B-spline ref grad elapsed time: " << cubicBSplineRefGradElapsedTime << " ms" << std::endl;
-        std::cout << "cubic B-spline ref grad elapsed steps: " << cubicBSplineRefGradElapsedSteps << std::endl;
-      }
+        algo2CubicBSplineMinimizer.minimize(&maskedNewVolume, &initialParam, &finalParam,
+          maxSteps, stepSizeScale, stepSizeLimit,
+          &convergenceTest, &gradientUpdateTest,
+          &elapsedSteps, &elapsedTime);
+        
+        outputFile << elapsedTime << " " << elapsedSteps
+          << " " << finalParam.transpose() << std::endl;
       
+        std::cout << "algo 2 cubic b-spline elapsed time: " << elapsedTime << " ms" << std::endl;
+        std::cout << "algo 2 cubic b-spline elapsed steps: " << elapsedSteps << std::endl;
+      }
+       
       CentralDifferencesDifferentiator<VolumeT> newVolDiffer(&maskedNewVolume);
       VolumeT newVolDx(cubeSize, cubeVectorLength);
       newVolDiffer.xDerivative(&newVolDx);
@@ -242,43 +237,109 @@ int main(int argc, char* argv[]) {
       newVolDiffer.zDerivative(&newVolDz);
       
       { 
-        double tricubicNewGradElapsedTime;
-        size_t tricubicNewGradElapsedSteps;
+        double elapsedTime;
+        size_t elapsedSteps;
         
-        tricubicNewGradMinimizer.minimize(&maskedNewVolume,
+        algo3CubicBSplineMinimizer.minimize(&maskedNewVolume,
           &newVolDz, &newVolDy, &newVolDx, 
           &initialParam, &finalParam,
           maxSteps, stepSizeScale, stepSizeLimit,
-          paramUpdate2NormLimit, paramUpdateInfinityNormLimit,
-          paramUpdateMMLimit, translationScaleMM, rotationScaleMM,
-          &tricubicNewGradElapsedSteps, &tricubicNewGradElapsedTime);
+          &convergenceTest, &gradientUpdateTest,
+          &elapsedSteps, &elapsedTime);
         
-        outputFile << tricubicNewGradElapsedTime << " " << tricubicNewGradElapsedSteps
+        outputFile << elapsedTime << " " << elapsedSteps
           << " " << finalParam.transpose() << std::endl;
+      
+        std::cout << "algo 3 cubic b-spline elapsed time: " << elapsedTime << " ms" << std::endl;
+        std::cout << "algo 3 cubic b-spline elapsed steps: " << elapsedSteps << std::endl;
+      }
 
-        std::cout << "tricubic new grad elapsed time: " << tricubicNewGradElapsedTime << " ms" << std::endl;
-        std::cout << "tricubic new grad elapsed steps: " << tricubicNewGradElapsedSteps << std::endl;
+      { 
+        double elapsedTime;
+        size_t elapsedSteps;
+        
+        algo4CubicBSplineMinimizer.minimize(&maskedNewVolume,
+          &newVolDz, &newVolDy, &newVolDx, 
+          &initialParam, &finalParam,
+          maxSteps, stepSizeScale, stepSizeLimit,
+          &convergenceTest, &gradientUpdateTest,
+          &elapsedSteps, &elapsedTime);
+        
+        outputFile << elapsedTime << " " << elapsedSteps
+          << " " << finalParam.transpose() << std::endl;
+      
+        std::cout << "algo 4 cubic b-spline elapsed time: " << elapsedTime << " ms" << std::endl;
+        std::cout << "algo 4 cubic b-spline elapsed steps: " << elapsedSteps << std::endl;
+      }
+
+      { 
+        double elapsedTime;
+        size_t elapsedSteps;
+       
+        algo5CubicBSplineMinimizer.minimize(&maskedNewVolume, &initialParam, &finalParam,
+          maxSteps, stepSizeScale, stepSizeLimit,
+          &convergenceTest, NULL,
+          &elapsedSteps, &elapsedTime);
+        
+        outputFile << elapsedTime << " " << elapsedSteps
+          << " " << finalParam.transpose() << std::endl;
+      
+        std::cout << "algo 5 cubic b-spline elapsed time: " << elapsedTime << " ms" << std::endl;
+        std::cout << "algo 5 cubic b-spline elapsed steps: " << elapsedSteps << std::endl;
       }
       
-      {
-        double cubicBSplineNewGradElapsedTime;
-        size_t cubicBSplineNewGradElapsedSteps;
+      { 
+        double elapsedTime;
+        size_t elapsedSteps;
+       
+
+        algo6CubicBSplineMinimizer.minimize(&maskedNewVolume, &initialParam, &finalParam,
+          maxSteps, stepSizeScale, stepSizeLimit,
+          &convergenceTest, &gradientUpdateTest,
+          &elapsedSteps, &elapsedTime);
         
-        cubicBSplineNewGradMinimizer.minimize(&maskedNewVolume,
+        outputFile << elapsedTime << " " << elapsedSteps
+          << " " << finalParam.transpose() << std::endl;
+      
+        std::cout << "algo 6 cubic b-spline elapsed time: " << elapsedTime << " ms" << std::endl;
+        std::cout << "algo 6 cubic b-spline elapsed steps: " << elapsedSteps << std::endl;
+      }
+
+      { 
+        double elapsedTime;
+        size_t elapsedSteps;
+        
+        algo7CubicBSplineMinimizer.minimize(&maskedNewVolume,
           &newVolDz, &newVolDy, &newVolDx, 
           &initialParam, &finalParam,
           maxSteps, stepSizeScale, stepSizeLimit,
-          paramUpdate2NormLimit, paramUpdateInfinityNormLimit,
-          paramUpdateMMLimit, translationScaleMM, rotationScaleMM,
-          &cubicBSplineNewGradElapsedSteps, &cubicBSplineNewGradElapsedTime); 
+          &convergenceTest, &gradientUpdateTest,
+          &elapsedSteps, &elapsedTime);
         
-        outputFile << cubicBSplineNewGradElapsedTime << " " << cubicBSplineNewGradElapsedSteps
+        outputFile << elapsedTime << " " << elapsedSteps
           << " " << finalParam.transpose() << std::endl;
-
-        std::cout << "cubic B-spline new grad elapsed time: " << cubicBSplineNewGradElapsedTime << " ms" << std::endl;
-        std::cout << "cubic B-spline new grad elapsed steps: " << cubicBSplineNewGradElapsedSteps << std::endl;
+      
+        std::cout << "algo 7 cubic b-spline elapsed time: " << elapsedTime << " ms" << std::endl;
+        std::cout << "algo 7 cubic b-spline elapsed steps: " << elapsedSteps << std::endl;
       }
 
+      { 
+        double elapsedTime;
+        size_t elapsedSteps;
+        
+        algo8CubicBSplineMinimizer.minimize(&maskedNewVolume,
+          &newVolDz, &newVolDy, &newVolDx, 
+          &initialParam, &finalParam,
+          maxSteps, stepSizeScale, stepSizeLimit,
+          &convergenceTest, &gradientUpdateTest,
+          &elapsedSteps, &elapsedTime);
+        
+        outputFile << elapsedTime << " " << elapsedSteps
+          << " " << finalParam.transpose() << std::endl;
+      
+        std::cout << "algo 8 cubic b-spline elapsed time: " << elapsedTime << " ms" << std::endl;
+        std::cout << "algo 8 cubic b-spline elapsed steps: " << elapsedSteps << std::endl;
+      }
     }
   }
 
