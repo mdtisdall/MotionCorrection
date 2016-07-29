@@ -1,6 +1,8 @@
 #ifndef CircularMaskOp_h
 #define CircularMaskOp_h
 
+#include "SymmetricHalfVolumeAtAddressable.h"
+
 #include <Eigen/Dense>
 
 #include <cmath>

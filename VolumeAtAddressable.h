@@ -2,6 +2,7 @@
 #define VolumeAtAddressable_h
 
 #include <cmath>
+#include <algorithm>
 
 #ifdef LINUX
 #include <cstddef>
@@ -68,7 +69,17 @@ class VolumeAtAddressable : public AtAddressableT {
     value_type& at(const size_t offset) {
         return asAtAddressable().at(offset);
     } 
-    
+   
+    value_type max() {
+      value_type max_ret = asAtAddressable().at(0);
+
+      for(size_t offset = 1; offset < totalPoints; offset++) {
+        max_ret = std::max(max_ret, asAtAddressable().at(offset));
+      }
+
+      return max_ret;
+    }
+
     int clipIndex(const int index) const {
         if(index > maxCubeIndex) {
             return maxCubeIndex;

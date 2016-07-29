@@ -261,8 +261,8 @@ class Gauss_Newton_Base{
       size_t step = 0;
       
       this->computeResidual(newVolume, &newVolVec,
-        &pointList, &curParam);
-      
+        &pointList, &curParam); 
+ 
       T prevResidualNorm = this->residual.norm();
         
 //      std::cout << "prevResidualNorm " << prevResidualNorm << std::endl; 
@@ -281,16 +281,16 @@ class Gauss_Newton_Base{
         
         reducedResidual.noalias() = this->residualGradient * this->residual;
     
-        //std::cout << "reducedResidual: " << std::endl <<
-        //  reducedResidual << std::endl;
+//        std::cout << "reducedResidual: " << std::endl <<
+//          reducedResidual << std::endl;
 
         // This equation solves the parameter update, but with signs negated
         ParamT negParamUpdateDirection;
         negParamUpdateDirection.noalias() =
           this->residualHessianLDL.solve(reducedResidual);
        
-        //std::cout << "negParamUpdateDirection: " << std::endl <<
-        //  negParamUpdateDirection << std::endl;
+//        std::cout << "negParamUpdateDirection: " << std::endl <<
+//          negParamUpdateDirection << std::endl;
 
         //
         // perform backtracking line search in the direction of the next step 

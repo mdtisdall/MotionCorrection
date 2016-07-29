@@ -159,7 +159,7 @@ TEST_CASE("a weighted Gauss-Newton minimizer using reference-image gradients can
   InterpolatorT interpolator(&maskedRefVolume);
 
   CentralDifferencesDifferentiator<VolumeT> volDiffer(&maskedRefVolume);
-  VolumeT dx(cubeSize, cubeVectorLength);
+  dx = new VolumeT(cubeSize, cubeVectorLength);
   volDiffer.xDerivative(&dx);
 
   VolumeT dy(cubeSize, cubeVectorLength);

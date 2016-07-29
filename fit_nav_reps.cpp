@@ -3,9 +3,6 @@
 
 #include "Algorithms.h"
 
-#include "TricubicInterpolator.h"
-#include "CubicBSplineInterpolator.h"
-
 #include "BinaryFile.h"
 
 #include <iostream>
@@ -18,9 +15,40 @@
 
 using namespace Algorithms;
 
+template<typename Algo>
+void runAlgo(
+  Algo *algo,
+  VolumeT *newVolume,
+  std::ofstream *outputFile,
+  std::string algoName) 
+{
+  ParamT finalParam;
+  double elapsedTime;
+  size_t elapsedSteps;
+
+  // make a local copy since some of the operations we'll perform may be
+  // destructive and we want to keep the original buffer clean.
+  VolumeT localNewVolume(newVolume->cubeSize);
+
+  memcpy(localNewVolume.buffer, newVolume->buffer,
+    newVolume->totalPoints * sizeof(dataT));
+
+  algo->registerNewVolume(&localNewVolume, &finalParam,
+    &elapsedTime, &elapsedSteps);
+  
+  (*outputFile) << elapsedTime << " " << elapsedSteps
+    << " " << finalParam.transpose() << std::endl;
+
+  std::cout << algoName << " cubic b-spline elapsed time: "
+    << elapsedTime << " ms" << std::endl;
+  std::cout << algoName << " cubic b-spline elapsed steps: "
+    << elapsedSteps << std::endl;
+}
+
 int main(int argc, char* argv[]) {
   typedef TricubicInterpolator<VolumeT, dataT> TricubicInterpolatorT; 
   typedef CubicBSplineInterpolator<VolumeT, dataT> CubicBSplineInterpolatorT; 
+  typedef CentralDifferencesDifferentiator<VolumeT> CentralDiffDifferentiatorT;
   
   size_t cubeSize;
   std::string basePath;
@@ -52,14 +80,9 @@ int main(int argc, char* argv[]) {
   } 
 
   const size_t cubeVectorLength = cubeSize * cubeSize * cubeSize;
+ 
+  VolumeT refVolume(cubeSize);
 
-  
-  ComplexDataCircularMaskOpT fourierMaskOp(cubeSize);
-  DataVolumeT maskedRefVolume(cubeSize);
-  ComplexVolumeT fourierData(cubeSize);
-
-  
-  DataFFTOpT fftOp(cubeSize);
   std::ofstream outputFile(outputPath);
 
   size_t step = 0;
@@ -67,8 +90,6 @@ int main(int argc, char* argv[]) {
   for(int baseIndex = 0; baseIndex <= 36; baseIndex += 36) {
 
     {
-      VolumeT refVolume(cubeSize);
-  
       std::stringstream refPath;
       refPath << basePath << baseIndex << ".dat";
       
@@ -78,84 +99,56 @@ int main(int argc, char* argv[]) {
           << std::endl;
         exit(1);
       }
-       
-      fftOp.forward(&refVolume, &fourierData);
-
-      fourierMaskOp.applyMask(&fourierData); 
-          
-      fftOp.backward(&fourierData, &maskedRefVolume);
     }
 
-    BinaryFile<VolumeT>::write(&maskedRefVolume,
-      "debug_filtered_ref_volume.dat");
+    const dataT paramUpdateMMLimit = 0.01;
 
-    CubicBSplineInterpolatorT cubicBSplineInterpolator(&maskedRefVolume);
-  
-    CentralDifferencesDifferentiator<VolumeT> volDiffer(&maskedRefVolume);
-    VolumeT dx(cubeSize, cubeVectorLength);
-    volDiffer.xDerivative(&dx);
-  
-    VolumeT dy(cubeSize, cubeVectorLength);
-    volDiffer.yDerivative(&dy);
-  
-    VolumeT dz(cubeSize, cubeVectorLength);
-    volDiffer.zDerivative(&dz);
-    
-    CentralDifferencesDifferentiator<VolumeT> dxDiffer(&dx);
+    MMParamTestT convergenceTest(
+      paramUpdateMMLimit,
+      translationScaleMM,
+      rotationScaleMM);
    
-    VolumeT dxy(cubeSize, cubeVectorLength);
-    dxDiffer.yDerivative(&dxy);
+    Algorithm1<
+      CubicBSplineInterpolatorT,
+      CentralDiffDifferentiatorT 
+      > algo1CubicBSplineMinimizer( &refVolume, &convergenceTest);
     
-    VolumeT dxz(cubeSize, cubeVectorLength);
-    dxDiffer.zDerivative(&dxz);
+    Algorithm2<
+      CubicBSplineInterpolatorT,
+      CentralDiffDifferentiatorT 
+      > algo2CubicBSplineMinimizer( &refVolume, &convergenceTest);
+    
+    Algorithm3<
+      CubicBSplineInterpolatorT,
+      CentralDiffDifferentiatorT 
+      > algo3CubicBSplineMinimizer( &refVolume, &convergenceTest);
+    
+    Algorithm4<
+      CubicBSplineInterpolatorT,
+      CentralDiffDifferentiatorT 
+      > algo4CubicBSplineMinimizer( &refVolume, &convergenceTest);
 
-    CentralDifferencesDifferentiator<VolumeT> dyDiffer(&dy);
-
-    VolumeT dyz(cubeSize, cubeVectorLength);
-    dyDiffer.zDerivative(&dyz);
-
-    CentralDifferencesDifferentiator<VolumeT> dxyDiffer(&dxy);
+    Algorithm5<
+      CubicBSplineInterpolatorT,
+      CentralDiffDifferentiatorT 
+      > algo5CubicBSplineMinimizer( &refVolume, &convergenceTest);
     
-    VolumeT dxyz(cubeSize, cubeVectorLength);
-    dxyDiffer.zDerivative(&dxyz);
-     
-    TricubicInterpolatorT tricubicInterpolator(&maskedRefVolume,
-      &dx, &dy, &dz, &dxy, &dxz, &dyz, &dxyz);
-
-    DataCircularMaskOpT imageMaskOp(cubeSize);
-  
-    Algorithm1<CubicBSplineInterpolatorT> algo1CubicBSplineMinimizer(
-      &cubicBSplineInterpolator, &imageMaskOp,
-      &dz, &dy, &dx, NULL);
+    Algorithm6<
+      CubicBSplineInterpolatorT,
+      CentralDiffDifferentiatorT 
+      > algo6CubicBSplineMinimizer( &refVolume, &convergenceTest);
     
-    Algorithm2<CubicBSplineInterpolatorT> algo2CubicBSplineMinimizer(
-      &cubicBSplineInterpolator, &imageMaskOp,
-      &dz, &dy, &dx, NULL);
+    Algorithm7<
+      CubicBSplineInterpolatorT,
+      CentralDiffDifferentiatorT 
+      > algo7CubicBSplineMinimizer( &refVolume, &convergenceTest);
     
-    Algorithm3<CubicBSplineInterpolatorT> algo3CubicBSplineMinimizer(
-      &cubicBSplineInterpolator, cubeSize, &imageMaskOp);
+    Algorithm8<
+      CubicBSplineInterpolatorT,
+      CentralDiffDifferentiatorT 
+      > algo8CubicBSplineMinimizer( &refVolume, &convergenceTest);
     
-    Algorithm4<CubicBSplineInterpolatorT> algo4CubicBSplineMinimizer(
-      &cubicBSplineInterpolator, cubeSize, &imageMaskOp);
-    
-    Algorithm5<CubicBSplineInterpolatorT> algo5CubicBSplineMinimizer(
-      &cubicBSplineInterpolator, &imageMaskOp,
-      &dz, &dy, &dx, NULL);
-    
-    Algorithm6<CubicBSplineInterpolatorT> algo6CubicBSplineMinimizer(
-      &cubicBSplineInterpolator, &imageMaskOp,
-      &dz, &dy, &dx, NULL);
-    
-    Algorithm7<CubicBSplineInterpolatorT> algo7CubicBSplineMinimizer(
-      &cubicBSplineInterpolator, cubeSize, &imageMaskOp);
-    
-    Algorithm8<CubicBSplineInterpolatorT> algo8CubicBSplineMinimizer(
-      &cubicBSplineInterpolator, cubeSize, &imageMaskOp);
-    
-          
-    DataVolumeT maskedNewVolume(cubeSize);
     VolumeT newVolume(cubeSize);
-    ParamT initialParam;
     ParamT finalParam;
  
     for(unsigned int i = baseIndex + 1; i < baseIndex + 36; i++, step++) { 
@@ -168,178 +161,17 @@ int main(int argc, char* argv[]) {
           << std::endl;
         exit(1);
       }
-      
-      fftOp.forward(&newVolume, &fourierData);
-      
-      fourierMaskOp.applyMask(&fourierData); 
-          
-      fftOp.backward(&fourierData, &maskedNewVolume);
-      
-      initialParam << 0, 0, 0, 0, 0, 0;
-      
-      const size_t maxSteps = 50;
-      const dataT stepSizeScale = 0.25;
-      const dataT stepSizeLimit = 1e-5;
-  
-      const dataT paramUpdateMMLimit = 0.01;
-      
-      ConvergenceTestT convergenceTest(
-        paramUpdateMMLimit,
-        translationScaleMM,
-        rotationScaleMM);
-     
-      GradientUpdateTestT gradientUpdateTest;
-
       std::cout << "----------" << std::endl;
       std::cout << "step " << step << std::endl;
-    
-      { 
-        double elapsedTime;
-        size_t elapsedSteps;
-       
-        algo1CubicBSplineMinimizer.minimize(&maskedNewVolume, &initialParam, &finalParam,
-          maxSteps, stepSizeScale, stepSizeLimit,
-          &convergenceTest, NULL,
-          &elapsedSteps, &elapsedTime);
-        
-        outputFile << elapsedTime << " " << elapsedSteps
-          << " " << finalParam.transpose() << std::endl;
       
-        std::cout << "algo 1 cubic b-spline elapsed time: " << elapsedTime << " ms" << std::endl;
-        std::cout << "algo 1 cubic b-spline elapsed steps: " << elapsedSteps << std::endl;
-      }
-      
-      { 
-        double elapsedTime;
-        size_t elapsedSteps;
-       
-
-        algo2CubicBSplineMinimizer.minimize(&maskedNewVolume, &initialParam, &finalParam,
-          maxSteps, stepSizeScale, stepSizeLimit,
-          &convergenceTest, &gradientUpdateTest,
-          &elapsedSteps, &elapsedTime);
-        
-        outputFile << elapsedTime << " " << elapsedSteps
-          << " " << finalParam.transpose() << std::endl;
-      
-        std::cout << "algo 2 cubic b-spline elapsed time: " << elapsedTime << " ms" << std::endl;
-        std::cout << "algo 2 cubic b-spline elapsed steps: " << elapsedSteps << std::endl;
-      }
-       
-      CentralDifferencesDifferentiator<VolumeT> newVolDiffer(&maskedNewVolume);
-      VolumeT newVolDx(cubeSize, cubeVectorLength);
-      newVolDiffer.xDerivative(&newVolDx);
-  
-      VolumeT newVolDy(cubeSize, cubeVectorLength);
-      newVolDiffer.yDerivative(&newVolDy);
-  
-      VolumeT newVolDz(cubeSize, cubeVectorLength);
-      newVolDiffer.zDerivative(&newVolDz);
-      
-      { 
-        double elapsedTime;
-        size_t elapsedSteps;
-        
-        algo3CubicBSplineMinimizer.minimize(&maskedNewVolume,
-          &newVolDz, &newVolDy, &newVolDx, 
-          &initialParam, &finalParam,
-          maxSteps, stepSizeScale, stepSizeLimit,
-          &convergenceTest, &gradientUpdateTest,
-          &elapsedSteps, &elapsedTime);
-        
-        outputFile << elapsedTime << " " << elapsedSteps
-          << " " << finalParam.transpose() << std::endl;
-      
-        std::cout << "algo 3 cubic b-spline elapsed time: " << elapsedTime << " ms" << std::endl;
-        std::cout << "algo 3 cubic b-spline elapsed steps: " << elapsedSteps << std::endl;
-      }
-
-      { 
-        double elapsedTime;
-        size_t elapsedSteps;
-        
-        algo4CubicBSplineMinimizer.minimize(&maskedNewVolume,
-          &newVolDz, &newVolDy, &newVolDx, 
-          &initialParam, &finalParam,
-          maxSteps, stepSizeScale, stepSizeLimit,
-          &convergenceTest, &gradientUpdateTest,
-          &elapsedSteps, &elapsedTime);
-        
-        outputFile << elapsedTime << " " << elapsedSteps
-          << " " << finalParam.transpose() << std::endl;
-      
-        std::cout << "algo 4 cubic b-spline elapsed time: " << elapsedTime << " ms" << std::endl;
-        std::cout << "algo 4 cubic b-spline elapsed steps: " << elapsedSteps << std::endl;
-      }
-
-      { 
-        double elapsedTime;
-        size_t elapsedSteps;
-       
-        algo5CubicBSplineMinimizer.minimize(&maskedNewVolume, &initialParam, &finalParam,
-          maxSteps, stepSizeScale, stepSizeLimit,
-          &convergenceTest, NULL,
-          &elapsedSteps, &elapsedTime);
-        
-        outputFile << elapsedTime << " " << elapsedSteps
-          << " " << finalParam.transpose() << std::endl;
-      
-        std::cout << "algo 5 cubic b-spline elapsed time: " << elapsedTime << " ms" << std::endl;
-        std::cout << "algo 5 cubic b-spline elapsed steps: " << elapsedSteps << std::endl;
-      }
-      
-      { 
-        double elapsedTime;
-        size_t elapsedSteps;
-       
-
-        algo6CubicBSplineMinimizer.minimize(&maskedNewVolume, &initialParam, &finalParam,
-          maxSteps, stepSizeScale, stepSizeLimit,
-          &convergenceTest, &gradientUpdateTest,
-          &elapsedSteps, &elapsedTime);
-        
-        outputFile << elapsedTime << " " << elapsedSteps
-          << " " << finalParam.transpose() << std::endl;
-      
-        std::cout << "algo 6 cubic b-spline elapsed time: " << elapsedTime << " ms" << std::endl;
-        std::cout << "algo 6 cubic b-spline elapsed steps: " << elapsedSteps << std::endl;
-      }
-
-      { 
-        double elapsedTime;
-        size_t elapsedSteps;
-        
-        algo7CubicBSplineMinimizer.minimize(&maskedNewVolume,
-          &newVolDz, &newVolDy, &newVolDx, 
-          &initialParam, &finalParam,
-          maxSteps, stepSizeScale, stepSizeLimit,
-          &convergenceTest, &gradientUpdateTest,
-          &elapsedSteps, &elapsedTime);
-        
-        outputFile << elapsedTime << " " << elapsedSteps
-          << " " << finalParam.transpose() << std::endl;
-      
-        std::cout << "algo 7 cubic b-spline elapsed time: " << elapsedTime << " ms" << std::endl;
-        std::cout << "algo 7 cubic b-spline elapsed steps: " << elapsedSteps << std::endl;
-      }
-
-      { 
-        double elapsedTime;
-        size_t elapsedSteps;
-        
-        algo8CubicBSplineMinimizer.minimize(&maskedNewVolume,
-          &newVolDz, &newVolDy, &newVolDx, 
-          &initialParam, &finalParam,
-          maxSteps, stepSizeScale, stepSizeLimit,
-          &convergenceTest, &gradientUpdateTest,
-          &elapsedSteps, &elapsedTime);
-        
-        outputFile << elapsedTime << " " << elapsedSteps
-          << " " << finalParam.transpose() << std::endl;
-      
-        std::cout << "algo 8 cubic b-spline elapsed time: " << elapsedTime << " ms" << std::endl;
-        std::cout << "algo 8 cubic b-spline elapsed steps: " << elapsedSteps << std::endl;
-      }
+      runAlgo(&algo1CubicBSplineMinimizer, &newVolume, &outputFile, "algo1");
+      runAlgo(&algo2CubicBSplineMinimizer, &newVolume, &outputFile, "algo2");
+      runAlgo(&algo3CubicBSplineMinimizer, &newVolume, &outputFile, "algo3");
+      runAlgo(&algo4CubicBSplineMinimizer, &newVolume, &outputFile, "algo4");
+      runAlgo(&algo5CubicBSplineMinimizer, &newVolume, &outputFile, "algo5");
+      runAlgo(&algo6CubicBSplineMinimizer, &newVolume, &outputFile, "algo6");
+      runAlgo(&algo7CubicBSplineMinimizer, &newVolume, &outputFile, "algo7");
+      runAlgo(&algo8CubicBSplineMinimizer, &newVolume, &outputFile, "algo8");
     }
   }
 
