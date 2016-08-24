@@ -1,5 +1,5 @@
-#VERSION = DEBUG
-VERSION = RELEASE
+VERSION = DEBUG
+#VERSION = RELEASE
 
 #CXXFLAGS += -I./
 CXXFLAGS += -I/Users/dylan/Documents/Research/Students/Diana/MotionCorrection
@@ -56,6 +56,8 @@ TESTOBJECTS += Gauss_Newton_New_Grad_tests.o
 TESTOBJECTS += CircularMaskOp_tests.o
 TESTOBJECTS += Weighted_Gauss_Newton_Ref_Grad_tests.o
 TESTOBJECTS += Weighted_Gauss_Newton_New_Grad_tests.o
+TESTOBJECTS += WeightFunction_tests.o
+TESTOBJECTS += DerivWeightFunction_tests.o
 
 test: $(TESTOBJECTS)
 
