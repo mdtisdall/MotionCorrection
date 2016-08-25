@@ -4,6 +4,7 @@
 #include "Gauss_Newton.h"
 
 #include "RawResidualOp.h"
+#include "RawResidualGradientAndHessian.h"
 
 template <
   typename _InterpolatorT,
@@ -14,6 +15,10 @@ template <
 class Gauss_Newton_Ref_Grad :
   Gauss_Newton <
     RawResidualOp<_InterpolatorT>,
+    RawResidualGradientAndHessian<
+      typename _InterpolatorT::VolumeT,
+      typename _InterpolatorT::CoordT
+      >,
     _InterpolatorT,
     _ParamAccumulatorT,
     _ConvergenceTestT, 
@@ -21,11 +26,17 @@ class Gauss_Newton_Ref_Grad :
   public:
     typedef Gauss_Newton <
       RawResidualOp<_InterpolatorT>,
+      RawResidualGradientAndHessian<
+        typename _InterpolatorT::VolumeT,
+        typename _InterpolatorT::CoordT
+        >,
       _InterpolatorT,
       _ParamAccumulatorT,
       _ConvergenceTestT,
       _GradientUpdateTestT > Parent;
     typedef typename Parent::ResidualOpT ResidualOpT;
+    typedef typename Parent::ResidualGradientAndHessianT
+      ResidualGradientAndHessianT;
     typedef typename Parent::InterpolatorT InterpolatorT;
     typedef typename Parent::ConvergenceTestT ConvergenceTestT;
     typedef typename Parent::GradientUpdateTestT GradientUpdateTestT;
@@ -44,17 +55,19 @@ class Gauss_Newton_Ref_Grad :
       Parent(
         interpRef,
         new ResidualOpT(refdz->cubeSize, interpRef),
+        new ResidualGradientAndHessianT(refdz->cubeSize),
         refdz->cubeSize),
       refdz(refdz),
       refdy(refdy),
       refdx(refdx) {
 
-      this->generateResidualGradientAndApproxHessian(
-        &(this->residualGradient), &(this->approxResidualHessian),
-        &(this->residualHessianLDL),
-        &(this->pointList),
-        refdz, refdy, refdx, this->cubeSize, this->cubeCenter,
-        gradientAndHessianComputeTime);
+      this->residualGradientAndHessian->
+        generateResidualGradientAndApproxHessian(
+          &(this->pointList),
+          refdz, refdy, refdx,
+          &(this->residualGradient), &(this->approxResidualHessian),
+          &(this->residualHessianLDL),
+          gradientAndHessianComputeTime);
      
       //std::cout << "approxResidualHessian:" << std::endl <<
       //  this->approxResidualHessian << std::endl;
