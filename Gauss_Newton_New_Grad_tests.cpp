@@ -1,6 +1,5 @@
 #include "catch.hpp"
 
-#include "Gauss_Newton_Ref_Grad.h"
 #include "Gauss_Newton_New_Grad.h"
 
 #include "CubicBSplineInterpolator.h"

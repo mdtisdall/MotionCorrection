@@ -1,7 +1,10 @@
 #ifndef Gauss_Newton_New_Grad_h
 #define Gauss_Newton_New_Grad_h
 
-#include "Gauss_Newton_Base.h"
+#include "Gauss_Newton.h"
+
+#include "RawResidualOp.h"
+#include "RawResidualGradientAndHessian.h"
 
 template <
   typename _InterpolatorT,
@@ -10,17 +13,30 @@ template <
   typename _GradientUpdateTestT = void
   >
 class Gauss_Newton_New_Grad : 
-  Gauss_Newton_Base<
+  Gauss_Newton <
+    RawResidualOp<_InterpolatorT>,
+    RawResidualGradientAndHessian<
+      typename _InterpolatorT::VolumeT,
+      typename _InterpolatorT::CoordT
+      >,
     _InterpolatorT,
     _ParamAccumulatorT,
     _ConvergenceTestT,
     _GradientUpdateTestT>{
   public:
-    typedef Gauss_Newton_Base <
+    typedef Gauss_Newton <
+      RawResidualOp<_InterpolatorT>,
+      RawResidualGradientAndHessian<
+        typename _InterpolatorT::VolumeT,
+        typename _InterpolatorT::CoordT
+        >,
       _InterpolatorT,
       _ParamAccumulatorT,
       _ConvergenceTestT,
       _GradientUpdateTestT > Parent;
+    typedef typename Parent::ResidualOpT ResidualOpT;
+    typedef typename Parent::ResidualGradientAndHessianT
+      ResidualGradientAndHessianT;
     typedef typename Parent::InterpolatorT InterpolatorT;
     typedef typename Parent::ConvergenceTestT ConvergenceTestT;
     typedef typename Parent::GradientUpdateTestT GradientUpdateTestT;
@@ -33,7 +49,11 @@ class Gauss_Newton_New_Grad :
       const InterpolatorT *interpRef, 
       const size_t cubeSize
       ) :
-      Parent(interpRef, cubeSize) {}
+      Parent(
+        interpRef,
+        new ResidualOpT(cubeSize, interpRef),
+        new ResidualGradientAndHessianT(cubeSize),
+        cubeSize) {}
     
     void minimize(
       const VolumeT *newVolume,
@@ -57,12 +77,13 @@ class Gauss_Newton_New_Grad :
         gettimeofday(&timeBefore, NULL);
       }
       
-      this->generateResidualGradientAndApproxHessian(
-        &(this->residualGradient), &(this->approxResidualHessian),
-        &(this->residualHessianLDL),  
-        &this->pointList, 
-        newdz, newdy, newdx, this->cubeSize, this->cubeCenter,
-        gradientAndHessianComputeTime);
+      this->residualGradientAndHessian->
+        generateResidualGradientAndApproxHessian(
+          &this->pointList, 
+          newdz, newdy, newdx,
+          &(this->residualGradient), &(this->approxResidualHessian),
+          &(this->residualHessianLDL),  
+          gradientAndHessianComputeTime);
      
       Parent::minimize(newVolume, newdz, newdy, newdx,
         initialParam, finalParam,
