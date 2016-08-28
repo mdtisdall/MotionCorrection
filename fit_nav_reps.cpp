@@ -4,6 +4,7 @@
 #include "Algorithms.h"
 
 #include "BinaryFile.h"
+#include "ReadVolume.h"
 
 #include <iostream>
 #include <fstream>
@@ -59,8 +60,8 @@ int main(int argc, char* argv[]) {
   try {
     TCLAP::CmdLine cmd("Registering vNav volumes", ' ', "dev");
 
-    TCLAP::ValueArg<std::string> inputFileArg("i", "input", "Path to a volume data, including file name, with the final \"xx.dat\" removed.", true, "", "path", cmd);
-    TCLAP::ValueArg<std::string> outputFileArg("o", "output", "Path to output file that will be written.", true, "", "path", cmd);
+    TCLAP::ValueArg<std::string> inputFileArg("i", "input", "Path to the first slice of a volume data, including file name, with the final \"_rep_x_slice_x.dat\" removed.", true, "", "path", cmd);
+    TCLAP::ValueArg<std::string> outputFileArg("o", "output", "Path to output file that will be written. Output file name should follow \"8mm_bspline_x_rot_3_0_to_5_0_deg_z_trans\"", true, "", "path", cmd);
     TCLAP::ValueArg<unsigned int> widthArg("", "width", "Number of voxels along the side of the vNav", true, 32, "integer", cmd);
     TCLAP::ValueArg<dataT> resolutionArg("", "res", "Size of a voxel's side in mm", true, 8, "mm", cmd);
 
@@ -85,16 +86,16 @@ int main(int argc, char* argv[]) {
 
   std::ofstream outputFile(outputPath);
 
-  size_t step = 0;
+  size_t step = 1;
 
-  for(int baseIndex = 0; baseIndex <= 36; baseIndex += 36) {
+  for(int baseIndex = 0; baseIndex < 36; baseIndex += 36) {
 
     {
       std::stringstream refPath;
-      refPath << basePath << baseIndex << ".dat";
+      refPath << basePath << "_rep_" << baseIndex;
       
       if(cubeVectorLength * sizeof(dataT)
-              != BinaryFile<VolumeT>::read(&refVolume, refPath.str())) {
+              != ReadVolume<VolumeT>::read_volume(&refVolume, refPath.str(), cubeSize)) {
         std::cerr << "read incorrect length from file: " << refPath.str()
           << std::endl;
         exit(1);
@@ -150,13 +151,13 @@ int main(int argc, char* argv[]) {
     
     VolumeT newVolume(cubeSize);
     ParamT finalParam;
- 
+
     for(unsigned int i = baseIndex + 1; i < baseIndex + 36; i++, step++) { 
       std::stringstream newPath;
-      newPath << basePath << i << ".dat";
+      newPath << basePath << "_rep_" << i;
       
       if(cubeVectorLength * sizeof(dataT)
-              != BinaryFile<VolumeT>::read(&newVolume, newPath.str())) {
+              != ReadVolume<VolumeT>::read_volume(&newVolume, newPath.str(), cubeSize)) {
         std::cerr << "read incorrect length from file: " << newPath.str()
           << std::endl;
         exit(1);
