@@ -23,8 +23,7 @@ template <
   typename _ResidualGradientAndHessianT,
   typename _InterpolatorT,
   typename _ParamAccumulatorT,
-  typename _ConvergenceTestT = void,
-  typename _GradientUpdateTestT = void
+  typename _ConvergenceTestT = void
   >
 class Gauss_Newton {
   public:
@@ -32,7 +31,6 @@ class Gauss_Newton {
     typedef _ResidualGradientAndHessianT ResidualGradientAndHessianT;
     typedef _InterpolatorT InterpolatorT;
     typedef _ConvergenceTestT ConvergenceTestT;
-    typedef _GradientUpdateTestT GradientUpdateTestT;
     typedef _ParamAccumulatorT ParamAccumulatorT;
     typedef typename InterpolatorT::VolumeT VolumeT;
     typedef typename InterpolatorT::CoordT CoordT;
@@ -42,7 +40,7 @@ class Gauss_Newton {
     Gauss_Newton(
       const InterpolatorT *interpRef,
       ResidualOpT *residualOp,
-      const ResidualGradientAndHessianT *residualGradientAndHessian,
+      ResidualGradientAndHessianT *residualGradientAndHessian,
       const size_t cubeSize 
       ) :
       interpRef(interpRef),
@@ -132,7 +130,6 @@ class Gauss_Newton {
       const T stepSizeScale = 0.25,
       const T stepSizeLimit = 10e-6,
       const ConvergenceTestT *convergenceTest = NULL, 
-      const GradientUpdateTestT *gradientUpdateTest = NULL, 
       size_t *elapsedSteps = NULL,
       double *elapsedTime = NULL 
       ) {
@@ -162,7 +159,7 @@ class Gauss_Newton {
       
       (*residualOp)(newVolume, &newVolVec, &transformedPointList,
         &curParam, &residual); 
- 
+
       T prevResidualNorm = this->residual.norm();
         
 //      std::cout << "prevResidualNorm " << prevResidualNorm << std::endl; 
@@ -174,15 +171,36 @@ class Gauss_Newton {
 //        std::cout << "curParam: " << std::endl <<
 //          curParam.transpose() << std::endl; 
 //        std::cout << "residualNorm: " << prevResidualNorm << std::endl; 
+//        std::cout << "residual(12305): " << residual(16911) << std::endl;
+
 
         //
         // compute the direction of the next step
         //
         
+//        std::cout << "residualGradient(12305): " << std::endl <<
+//          residualGradient.col(12305).transpose() << std::endl;
+       
+//        {
+//          std::string filePath("Static_Weighted_Gauss_Newton_New_Grad_tests/residual_" + std::to_string(step));
+//          int outputFile = open(filePath.c_str(), O_WRONLY | O_CREAT, 0600);
+//    
+//          if(-1 == outputFile) {
+//            std::cerr << "Could not open file: " << filePath << std::endl;
+//            exit(1);
+//          }
+//
+//          int bytesWritten = 
+//              ::write(outputFile, residual.data(),
+//                sizeof(T) * this->cubeSize * this->cubeSize * this->cubeSize);
+//    
+//          close(outputFile);
+//        }
+
         reducedResidual.noalias() = this->residualGradient * this->residual;
     
 //        std::cout << "reducedResidual: " << std::endl <<
-//          reducedResidual << std::endl;
+//          reducedResidual.transpose() << std::endl;
 
         // This equation solves the parameter update, but with signs negated
         ParamT negParamUpdateDirection;
@@ -190,7 +208,7 @@ class Gauss_Newton {
           this->residualHessianLDL.solve(reducedResidual);
        
 //        std::cout << "negParamUpdateDirection: " << std::endl <<
-//          negParamUpdateDirection << std::endl;
+//          negParamUpdateDirection.transpose() << std::endl;
 
         //
         // perform backtracking line search in the direction of the next step 
@@ -246,28 +264,11 @@ class Gauss_Newton {
             break; 
         }
 
-        //
-        // now check to see if we need to update our gradients
-        //
-
-        if(
-          TestHelper<GradientUpdateTestT>::eval(
-            gradientUpdateTest, &paramUpdate) ) {
-          
-          PointListT accumulatedPoints;
-
-          transformPointListWithParam(&curParam,
-            &pointList, &accumulatedPoints);
-    
-          residualGradientAndHessian->generateResidualGradientAndApproxHessian(
-            &accumulatedPoints, 
-            refdz, refdy, refdx,
-            &residualGradient, &approxResidualHessian, 
-            &residualHessianLDL);
-
-          //std::cout << "approxResidualHessian:" << std::endl <<
-          //  approxResidualHessian << std::endl;
-        }
+        residualGradientAndHessian->updateResidualGradientAndApproxHessian(
+          &transformedPointList, 
+          refdz, refdy, refdx,
+          &residualGradient, &approxResidualHessian, 
+          &residualHessianLDL);
       }
 
       if(NULL != elapsedSteps) {
@@ -281,7 +282,7 @@ class Gauss_Newton {
   protected:
     const InterpolatorT *interpRef;
     ResidualOpT *residualOp;
-    const ResidualGradientAndHessianT *residualGradientAndHessian;
+    ResidualGradientAndHessianT *residualGradientAndHessian;
     const size_t cubeSize;
     const CoordT cubeCenter;
     ResidualGradientT residualGradient;

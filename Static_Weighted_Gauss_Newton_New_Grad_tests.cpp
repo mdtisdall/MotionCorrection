@@ -1,6 +1,6 @@
 #include "catch.hpp"
 
-#include "Gauss_Newton_New_Grad.h"
+#include "Static_Weighted_Gauss_Newton_New_Grad.h"
 
 #include "CubicBSplineInterpolator.h"
 #include "VolumeAtAddressable.h"
@@ -11,13 +11,18 @@
 #include "SumParamAccumulator.h"
 #include "ComposeTransformParamAccumulator.h"
 
+#include "WeightFunction.h"
+
 #include "CentralDifferenceDifferentiator.h"
 
+#include "FFTOp.h"
 #include "FFTWBuffer.h"
+
+#include "CircularMaskOp.h"
 
 #include "BinaryFile.h"
 
-TEST_CASE("a Gauss-Newton minimizer using new-image gradients can be instantiated") {
+TEST_CASE("a Gauss-Newton minimizer using static weights and new-image gradients can be instantiated") {
   typedef float dataT;
   typedef VolumeAtAddressable< FFTWBuffer<dataT> > VolumeT; 
   typedef CubicBSplineInterpolator<VolumeT, float> InterpolatorT; 
@@ -49,13 +54,17 @@ TEST_CASE("a Gauss-Newton minimizer using new-image gradients can be instantiate
     
     typedef TwoNormParamTest<dataT> ConvergenceTestT;
     typedef SumParamAccumulator<dataT> ParamAccumulatorT;
-    typedef Gauss_Newton_New_Grad <
+    typedef WeightFunction<dataT> WeightFuncT;
+    typedef Static_Weighted_Gauss_Newton_New_Grad <
       InterpolatorT,
       ParamAccumulatorT,
+      WeightFuncT,
       ConvergenceTestT > MinimizerT; 
     typedef MinimizerT::ParamT ParamT;
-    
-    MinimizerT minimizer(&interpolator, cubeSize);
+   
+    WeightFuncT weightFunc(cubeSize);
+
+    MinimizerT minimizer(&interpolator, cubeSize, &weightFunc);
 
     SECTION("and registering an image with itself produces 0 transformation") {
       ParamT initialParam;
@@ -93,62 +102,106 @@ TEST_CASE("a Gauss-Newton minimizer using new-image gradients can be instantiate
       WARN("elapsed steps: " << elapsedSteps);
       WARN("finalParam: " << finalParam.transpose());
     }
+
 }
 
 
-TEST_CASE("a Gauss-Newton minimizer using new-image gradients can be instantiated from image data") {
+TEST_CASE("a Gauss-Newton minimizer using static weights and new-image gradients can be instantiated from image data") {
     typedef double dataT;
     typedef VolumeAtAddressable< FFTWBuffer<dataT> > VolumeT; 
     typedef CubicBSplineInterpolator<VolumeT, dataT> InterpolatorT; 
 
-    const size_t cubeSize = 32;
-    const size_t cubeVectorLength = cubeSize * cubeSize * cubeSize;
+  const size_t cubeSize = 32;
+  const size_t cubeVectorLength = cubeSize * cubeSize * cubeSize;
 
+  typedef std::complex<dataT> complexT;
+  typedef FFTOp<dataT> DataFFTOpT;
+  typedef DataFFTOpT::spatialVolumeT DataVolumeT; 
+  typedef DataFFTOpT::fourierVolumeT ComplexVolumeT; 
+  typedef SymmetricHalfVolumeAtAddressable< FFTWBuffer<dataT> >
+    FourierMaskVolumeT;
+  typedef WeightFunction<dataT> WeightFunctionT;
+  typedef CircularMaskOp< ComplexVolumeT, FourierMaskVolumeT, WeightFunctionT>
+    ComplexDataCircularMaskOpT;
+  
+  const dataT maskScale =
+    1.0/((dataT) cubeVectorLength); 
+ 
+  WeightFunctionT weightFunction(cubeSize);
+
+  ComplexDataCircularMaskOpT
+    fourierMaskOp(cubeSize, &weightFunction, maskScale);
+  DataVolumeT maskedRefVolume(cubeSize);
+  DataVolumeT maskedNewVolume(cubeSize);
+
+  {
     VolumeT refVolume(cubeSize);
     VolumeT newVolume(cubeSize);
-
+  
+    ComplexVolumeT fourierData(cubeSize);
+    
     REQUIRE(cubeVectorLength * sizeof(dataT)
             == BinaryFile<VolumeT>::read(&refVolume,
-                "Gauss_Newton_New_Grad_tests/refVolInput.dat"));
+                "Weighted_Gauss_Newton_New_Grad_tests/refVolInput.dat"));
+    
+    DataFFTOpT fftOp(cubeSize);
+  
+    fftOp.forward(&refVolume, &fourierData);
+    
+    fourierMaskOp.applyMask(&fourierData); 
+        
+    fftOp.backward(&fourierData, &maskedRefVolume);
     
     REQUIRE(cubeVectorLength * sizeof(dataT)
             == BinaryFile<VolumeT>::read(&newVolume,
-                "Gauss_Newton_New_Grad_tests/newVolInput.dat"));
-
-    InterpolatorT interpolator(&refVolume);
-
+                "Weighted_Gauss_Newton_New_Grad_tests/newVolInput.dat"));
     
+    fftOp.forward(&newVolume, &fourierData);
+    
+    fourierMaskOp.applyMask(&fourierData); 
+        
+    fftOp.backward(&fourierData, &maskedNewVolume);
+  }
 
-      CentralDifferencesDifferentiator<VolumeT> volDiffer(&newVolume);
-      VolumeT dx(cubeSize, cubeVectorLength);
-      volDiffer.xDerivative(&dx);
+//  std::cout << "maskedNewVolume.at(0): " << maskedNewVolume.at(0) << std::endl;
+//  std::cout << "maskedRefVolume.at(0): " << maskedRefVolume.at(0) << std::endl;
 
-      VolumeT dy(cubeSize, cubeVectorLength);
-      volDiffer.yDerivative(&dy);
+  InterpolatorT interpolator(&maskedRefVolume);
 
-      VolumeT dz(cubeSize, cubeVectorLength);
-      volDiffer.zDerivative(&dz);
-     
-      double gradientAndHessianComputeTime;
+  CentralDifferencesDifferentiator<VolumeT> volDiffer(&maskedNewVolume);
+  VolumeT dx(cubeSize, cubeVectorLength);
+  volDiffer.xDerivative(&dx);
+
+  VolumeT dy(cubeSize, cubeVectorLength);
+  volDiffer.yDerivative(&dy);
+
+  VolumeT dz(cubeSize, cubeVectorLength);
+  volDiffer.zDerivative(&dz);
+  
+  double gradientAndHessianComputeTime;
+  
+  WARN("elapsed time computing gradient and Hessian: "
+    << gradientAndHessianComputeTime << " ms");
 
         
       SECTION(std::string("and registering two images ") +
         std::string("returns identical result to Mathematica")) {
     
         typedef SumParamAccumulator<dataT> ParamAccumulatorT;
-        typedef Gauss_Newton_New_Grad<
-          InterpolatorT, ParamAccumulatorT> MinimizerT; 
+        typedef WeightFunction<dataT> WeightFuncT;
+        typedef Static_Weighted_Gauss_Newton_New_Grad<
+          InterpolatorT, ParamAccumulatorT, WeightFuncT> MinimizerT; 
         typedef MinimizerT::ParamT ParamT;
       
-        MinimizerT minimizer(&interpolator, cubeSize);
+        WeightFuncT weightFunc(cubeSize);
+
+        MinimizerT minimizer(&interpolator, cubeSize, &weightFunc);
         
         ParamT initialParam;
         initialParam << 0, 0, 0, 0, 0, 0;
   
         ParamT finalParam;
 
-        // We force this to go exactly 20 steps, so that we get to the same
-        // point as the Mathematica code
         size_t maxSteps = 20;
         dataT stepSizeScale = 0.25;
         dataT stepSizeLimit = 1.0;
@@ -156,7 +209,7 @@ TEST_CASE("a Gauss-Newton minimizer using new-image gradients can be instantiate
         double elapsedTime;
         size_t elapsedSteps;
   
-        minimizer.minimize(&newVolume, &dz, &dy, &dx,
+        minimizer.minimize(&maskedNewVolume, &dz, &dy, &dx,
           &initialParam, &finalParam,
           maxSteps, stepSizeScale, stepSizeLimit,
           NULL,
@@ -167,10 +220,13 @@ TEST_CASE("a Gauss-Newton minimizer using new-image gradients can be instantiate
 
 
         std::vector<dataT> paramSolution(6);
+        
+        INFO("finalParam: " << finalParam.transpose());
+
 
         REQUIRE(6 * sizeof(dataT)
               == BinaryFile< std::vector<dataT> >::read(&paramSolution,
-                  "Gauss_Newton_New_Grad_tests/parameterOutput.dat"));
+                  "Static_Weighted_Gauss_Newton_New_Grad_tests/parameterOutput.dat"));
 
         for(int i = 0; i < 6; i++) {
           REQUIRE(paramSolution[i] == Approx(finalParam(i)));
@@ -185,11 +241,14 @@ TEST_CASE("a Gauss-Newton minimizer using new-image gradients can be instantiate
         std::string("returns identical result to Mathematica")) {
     
         typedef ComposeTransformParamAccumulator<dataT> ParamAccumulatorT;
-        typedef Gauss_Newton_New_Grad<
-          InterpolatorT, ParamAccumulatorT> MinimizerT; 
+        typedef WeightFunction<dataT> WeightFuncT;
+        typedef Static_Weighted_Gauss_Newton_New_Grad<
+          InterpolatorT, ParamAccumulatorT, WeightFuncT> MinimizerT; 
         typedef MinimizerT::ParamT ParamT;
       
-        MinimizerT minimizer(&interpolator, cubeSize);
+        WeightFuncT weightFunc(cubeSize);
+
+        MinimizerT minimizer(&interpolator, cubeSize, &weightFunc);
         
         ParamT initialParam;
         initialParam << 0, 0, 0, 0, 0, 0;
@@ -205,7 +264,7 @@ TEST_CASE("a Gauss-Newton minimizer using new-image gradients can be instantiate
         double elapsedTime;
         size_t elapsedSteps;
   
-        minimizer.minimize(&newVolume, &dz, &dy, &dx,
+        minimizer.minimize(&maskedNewVolume, &dz, &dy, &dx,
           &initialParam, &finalParam,
           maxSteps, stepSizeScale, stepSizeLimit,
           NULL,
@@ -217,9 +276,11 @@ TEST_CASE("a Gauss-Newton minimizer using new-image gradients can be instantiate
 
         std::vector<dataT> paramSolution(6);
 
+        INFO("finalParam: " << finalParam.transpose());
+
         REQUIRE(6 * sizeof(dataT)
               == BinaryFile< std::vector<dataT> >::read(&paramSolution,
-                  "Gauss_Newton_New_Grad_tests/accumulateParameterOutput.dat"));
+                  "Static_Weighted_Gauss_Newton_New_Grad_tests/accumulateParameterOutput.dat"));
 
         for(int i = 0; i < 6; i++) {
           REQUIRE(paramSolution[i] == Approx(finalParam(i)));

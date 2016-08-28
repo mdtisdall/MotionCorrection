@@ -9,8 +9,7 @@
 template <
   typename _InterpolatorT,
   typename _ParamAccumulatorT,
-  typename _ConvergenceTestT = void,
-  typename _GradientUpdateTestT = void
+  typename _ConvergenceTestT = void
   >
 class Gauss_Newton_Ref_Grad :
   Gauss_Newton <
@@ -21,8 +20,7 @@ class Gauss_Newton_Ref_Grad :
       >,
     _InterpolatorT,
     _ParamAccumulatorT,
-    _ConvergenceTestT, 
-    _GradientUpdateTestT >{
+    _ConvergenceTestT >{
   public:
     typedef Gauss_Newton <
       RawResidualOp<_InterpolatorT>,
@@ -32,14 +30,12 @@ class Gauss_Newton_Ref_Grad :
         >,
       _InterpolatorT,
       _ParamAccumulatorT,
-      _ConvergenceTestT,
-      _GradientUpdateTestT > Parent;
+      _ConvergenceTestT > Parent;
     typedef typename Parent::ResidualOpT ResidualOpT;
     typedef typename Parent::ResidualGradientAndHessianT
       ResidualGradientAndHessianT;
     typedef typename Parent::InterpolatorT InterpolatorT;
     typedef typename Parent::ConvergenceTestT ConvergenceTestT;
-    typedef typename Parent::GradientUpdateTestT GradientUpdateTestT;
     typedef typename Parent::VolumeT VolumeT;
     typedef typename Parent::CoordT CoordT;
     typedef typename Parent::T T;
@@ -62,7 +58,7 @@ class Gauss_Newton_Ref_Grad :
       refdx(refdx) {
 
       this->residualGradientAndHessian->
-        generateResidualGradientAndApproxHessian(
+        initializeResidualGradientAndApproxHessian(
           &(this->pointList),
           refdz, refdy, refdx,
           &(this->residualGradient), &(this->approxResidualHessian),
@@ -88,7 +84,6 @@ class Gauss_Newton_Ref_Grad :
       const T stepSizeScale = 0.25,
       const T stepSizeLimit = 0,
       const ConvergenceTestT *convergenceTest = NULL, 
-      const GradientUpdateTestT *gradientUpdateTest = NULL, 
       size_t *elapsedSteps = NULL,
       double *elapsedTime = NULL 
       ) {
@@ -103,7 +98,7 @@ class Gauss_Newton_Ref_Grad :
       Parent::minimize(newVolume, refdz, refdy, refdx,
         initialParam, finalParam,
         maxSteps, stepSizeScale, stepSizeLimit,
-        convergenceTest, gradientUpdateTest, 
+        convergenceTest, 
         elapsedSteps, NULL);
       
       if(NULL != elapsedTime) { 

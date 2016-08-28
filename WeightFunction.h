@@ -15,7 +15,7 @@ class WeightFunction {
       {}
 
     T operator() (T z, T y, T x) const {
-      return maskValue( std::sqrt(z*z + y*y + x*x) );   
+      return (*this)( std::sqrt(z*z + y*y + x*x) );   
     }
     
     T operator() (T radius) const {
@@ -28,16 +28,17 @@ class WeightFunction {
           return ((T) 0.0); 
         }
         
-        return wcos(r * (T) 2.0 - (T) 1.5);
+        return HannWindow(r * (T) 2.0 - (T) 1.5);
     }
 
   protected:
-    T wcos(T t) const {
+    T HannWindow(T t) const {
       if(t < -((T) 0.5) || t > ((T) 0.5)) {
         return 0;
       }
       else {
-        return cos(t * (T) M_PI); 
+        const T cos2PiT = cos(t * (T) (2.0 * M_PI));
+        return 0.5 + 0.5 * cos2PiT; 
       }
     }
 

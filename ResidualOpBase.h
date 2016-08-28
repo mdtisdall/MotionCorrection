@@ -13,6 +13,7 @@ public:
 protected:
   ResidualOpBase(const size_t cubeSize) :
     cubeSize(cubeSize),
+    cubeSizeDiv2( ((CoordT) cubeSize) / (CoordT) 2.0),
     cubeCenter(cubeCenterFromCubeSize(cubeSize)),
     cubeCenterPoint(cubeCenter, cubeCenter, cubeCenter) {}
 
@@ -21,6 +22,7 @@ protected:
   }
 
   const size_t cubeSize;
+  const CoordT cubeSizeDiv2;
   const CoordT cubeCenter;
   const PointT cubeCenterPoint;
 };

@@ -77,7 +77,7 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
   
       minimizer.minimize(&volume, &initialParam, &finalParam,
         maxSteps, stepSizeScale, stepSizeLimit,
-        &convergenceTest, NULL,
+        &convergenceTest,
         &elapsedSteps, &elapsedTime);
  
         for(int i = 0; i < 6; i++) {
@@ -127,7 +127,6 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
 
 
       SECTION(std::string("and registering two images ") +
-        std::string("without updating gradients ") + 
         std::string("returns identical result to Mathematica")) {
         
         typedef SumParamAccumulator<dataT> ParamAccumulatorT;
@@ -158,7 +157,7 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
   
         minimizer.minimize(&newVolume, &initialParam, &finalParam,
         maxSteps, stepSizeScale, stepSizeLimit,
-        NULL,  NULL,
+        NULL,
         &elapsedSteps, &elapsedTime);
 
         std::vector<dataT> paramSolution(6);
@@ -176,72 +175,13 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
       }
       
       SECTION(std::string("and registering two images ") +
-        std::string("updating gradients every step ") + 
+        std::string("using transform composition accumulator ") +
         std::string("returns identical result to Mathematica")) {
         
-        typedef void ConvergenceTestT;
-        typedef TrueParamTest<dataT> GradientUpdateTestT;
-        typedef SumParamAccumulator<dataT> ParamAccumulatorT;
-        typedef Gauss_Newton_Ref_Grad<
-          InterpolatorT,
-          ParamAccumulatorT,
-          ConvergenceTestT,
-          GradientUpdateTestT > MinimizerT; 
-        typedef MinimizerT::ParamT ParamT;
-      
-        MinimizerT minimizer(&interpolator, &dz, &dy, &dx,
-          &gradientAndHessianComputeTime);
-          
-        WARN("elapsed time computing gradient and Hessian: "
-          << gradientAndHessianComputeTime << " ms");
-        
-        ParamT initialParam;
-        initialParam << 0, 0, 0, 0, 0, 0;
-  
-        ParamT finalParam;
-
-        // We force this to go exactly 20 steps, so that we get to the same
-        // point as the Mathematica code
-        size_t maxSteps = 20;
-        dataT stepSizeScale = 0.25;
-        dataT stepSizeLimit = 1.0;
- 
-        double elapsedTime;
-        size_t elapsedSteps;
- 
-        GradientUpdateTestT gradientUpdateTest;
-
-        minimizer.minimize(&newVolume, &initialParam, &finalParam,
-        maxSteps, stepSizeScale, stepSizeLimit,
-        NULL,  &gradientUpdateTest,
-        &elapsedSteps, &elapsedTime);
-
-        std::vector<dataT> paramSolution(6);
-
-        REQUIRE(6 * sizeof(dataT)
-              == BinaryFile< std::vector<dataT> >::read(&paramSolution,
-                  "Gauss_Newton_Ref_Grad_tests/gradientUpdateParameterOutput.dat"));
-
-        for(int i = 0; i < 6; i++) {
-          REQUIRE(paramSolution[i] == Approx(finalParam(i)));
-        }
-
-        WARN("elapsed time: " << elapsedTime << " ms");
-        WARN("elapsed steps: " << elapsedSteps);
-      }
-
-      SECTION(std::string("and registering two images ") +
-        std::string("updating gradients every step ") + 
-        std::string("and using compose accumulator ") + 
-        std::string("returns identical result to Mathematica")) {
-        
-        typedef void ConvergenceTestT;
-        typedef TrueParamTest<dataT> GradientUpdateTestT;
         typedef ComposeTransformParamAccumulator<dataT> ParamAccumulatorT;
         typedef Gauss_Newton_Ref_Grad<
           InterpolatorT,
-          ParamAccumulatorT, ConvergenceTestT,
-          GradientUpdateTestT > MinimizerT; 
+          ParamAccumulatorT > MinimizerT; 
         typedef MinimizerT::ParamT ParamT;
       
         MinimizerT minimizer(&interpolator, &dz, &dy, &dx,
@@ -263,19 +203,17 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
  
         double elapsedTime;
         size_t elapsedSteps;
- 
-        GradientUpdateTestT gradientUpdateTest;
-
+  
         minimizer.minimize(&newVolume, &initialParam, &finalParam,
         maxSteps, stepSizeScale, stepSizeLimit,
-        NULL,  &gradientUpdateTest,
+        NULL,
         &elapsedSteps, &elapsedTime);
 
         std::vector<dataT> paramSolution(6);
 
         REQUIRE(6 * sizeof(dataT)
               == BinaryFile< std::vector<dataT> >::read(&paramSolution,
-                  "Gauss_Newton_Ref_Grad_tests/gradientUpdateComposeAccumulateParameterOutput.dat"));
+                  "Gauss_Newton_Ref_Grad_tests/accumulateParameterOutput.dat"));
 
         for(int i = 0; i < 6; i++) {
           REQUIRE(paramSolution[i] == Approx(finalParam(i)));
@@ -284,5 +222,6 @@ TEST_CASE("a Gauss-Newton minimizer using reference-image gradients can be insta
         WARN("elapsed time: " << elapsedTime << " ms");
         WARN("elapsed steps: " << elapsedSteps);
       }
+
 }
 

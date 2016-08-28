@@ -9,17 +9,25 @@
 
 #include "CircularMaskOp.h"
 
+#include "WeightFunction.h"
+
 #include "BinaryFile.h"
 
 TEST_CASE("A circular mask can be instantiated") {
-    typedef float dataT;
-    typedef std::complex<float> complexT;
+    typedef double dataT;
+    typedef std::complex<dataT> complexT;
     typedef FFTOp<dataT> DataFFTOpT;
     typedef DataFFTOpT::spatialVolumeT DataVolumeT; 
-    typedef DataFFTOpT::fourierVolumeT ComplexVolumeT; 
-    typedef CircularMaskOp< DataVolumeT, DataVolumeT> DataCircularMaskOpT;
+    typedef DataFFTOpT::fourierVolumeT ComplexVolumeT;
+    typedef WeightFunction<dataT> WeightFunctionT;
+    typedef CircularMaskOp<
+      DataVolumeT,
+      DataVolumeT,
+      WeightFunctionT >
+      DataCircularMaskOpT;
     typedef CircularMaskOp< ComplexVolumeT,
-      SymmetricHalfVolumeAtAddressable< FFTWBuffer<dataT> > >
+      SymmetricHalfVolumeAtAddressable< FFTWBuffer<dataT> >,
+      WeightFunctionT >
       ComplexDataCircularMaskOpT;
 
     const size_t cubeSize = 32;
@@ -33,7 +41,8 @@ TEST_CASE("A circular mask can be instantiated") {
 
 
     SECTION("and masking in the Fourier domain gives the precomputed answers") {
-      ComplexDataCircularMaskOpT fourierMaskOp(cubeSize);
+      WeightFunctionT weightFunc(cubeSize);
+      ComplexDataCircularMaskOpT fourierMaskOp(cubeSize, &weightFunc);
       ComplexVolumeT fourierData(cubeSize);
       ComplexVolumeT maskedFourierData(cubeSize);
       DataFFTOpT fftOp(cubeSize);
@@ -82,7 +91,8 @@ TEST_CASE("A circular mask can be instantiated") {
     }
     
     SECTION("and masking in the image domain gives the precomputed answers") {
-      DataCircularMaskOpT imageMaskOp(cubeSize);
+      WeightFunctionT weightFunc(cubeSize);
+      DataCircularMaskOpT imageMaskOp(cubeSize, &weightFunc);
       
       imageMaskOp.applyMask(&initialData); 
     
