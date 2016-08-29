@@ -3,15 +3,6 @@
 
 #include "BinaryFile.h"
 
-#include <vector>
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <complex>
-#include <fstream>
-#include <stdio.h>
-
-using namespace std;
 
 template <typename AtAddressableT>
 class ReadVolume{
@@ -21,13 +12,13 @@ class ReadVolume{
     typedef std::complex<dataT> complexT;
     typedef std::vector<complexT> vectorT;
 
-    static int read_volume(AtAddressableT *buffer, string path, int cubeSize){
+    static int read_volume(AtAddressableT *buffer, std::string path, int cubeSize){
         vectorT readbuffer(cubeSize*cubeSize);
         int bytesRead = 0;
         for (int i = 0; i < cubeSize; ++i){
             std::stringstream ss;
             ss << i;
-            string slice_path = path+"_slice_" + ss.str() +".dat";
+            std::string slice_path = path+"_slice_" + ss.str() +".dat";
             int inputFile = open(slice_path.c_str(), O_RDONLY);
 
             if(-1 == inputFile) {

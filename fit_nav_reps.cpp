@@ -1,7 +1,10 @@
-#include "Weighted_Gauss_Newton_Ref_Grad.h"
-#include "Weighted_Gauss_Newton_New_Grad.h"
+//#include "Weighted_Gauss_Newton_Ref_Grad.h"
+//#include "Weighted_Gauss_Newton_New_Grad.h"
 
 #include "Algorithms.h"
+
+#include "CentralDifferenceDifferentiator.h"
+#include "MMParamTest.h"
 
 #include "BinaryFile.h"
 #include "ReadVolume.h"
@@ -19,10 +22,14 @@ using namespace Algorithms;
 template<typename Algo>
 void runAlgo(
   Algo *algo,
-  VolumeT *newVolume,
+  typename Algo::VolumeT *newVolume,
   std::ofstream *outputFile,
   std::string algoName) 
 {
+  typedef typename Algo::ParamT ParamT;
+  typedef typename Algo::VolumeT VolumeT;
+  typedef typename VolumeT::value_type dataT;
+
   ParamT finalParam;
   double elapsedTime;
   size_t elapsedSteps;
@@ -47,9 +54,13 @@ void runAlgo(
 }
 
 int main(int argc, char* argv[]) {
-  typedef TricubicInterpolator<VolumeT, dataT> TricubicInterpolatorT; 
+  typedef float dataT;
+  typedef VolumeAtAddressable< FFTWBuffer<dataT> > VolumeT; 
+  typedef std::complex<dataT> complexT;
+   
+  typedef MMParamTest<dataT> MMParamTestT;
+  
   typedef CubicBSplineInterpolator<VolumeT, dataT> CubicBSplineInterpolatorT; 
-  typedef CentralDifferencesDifferentiator<VolumeT> CentralDiffDifferentiatorT;
   
   size_t cubeSize;
   std::string basePath;
@@ -108,7 +119,7 @@ int main(int argc, char* argv[]) {
       paramUpdateMMLimit,
       translationScaleMM,
       rotationScaleMM);
-   
+/*   
     Algorithm1<
       CubicBSplineInterpolatorT,
       CentralDiffDifferentiatorT 
@@ -148,9 +159,23 @@ int main(int argc, char* argv[]) {
       CubicBSplineInterpolatorT,
       CentralDiffDifferentiatorT 
       > algo8CubicBSplineMinimizer( &refVolume, &convergenceTest);
+*/    
+    typedef CentralDifferencesDifferentiator<VolumeT>
+      CentralDiffDifferentiatorT;
+    
+    Algorithm5<
+      CubicBSplineInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo5CubicBSplineMinimizer( &refVolume, &convergenceTest);
+    
+    Algorithm10<
+      CubicBSplineInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo10ubicBSplineMinimizer( &refVolume, &convergenceTest);
     
     VolumeT newVolume(cubeSize);
-    ParamT finalParam;
 
     for(unsigned int i = baseIndex + 1; i < baseIndex + 36; i++, step++) { 
       std::stringstream newPath;
@@ -164,7 +189,7 @@ int main(int argc, char* argv[]) {
       }
       std::cout << "----------" << std::endl;
       std::cout << "step " << step << std::endl;
-      
+/*      
       runAlgo(&algo1CubicBSplineMinimizer, &newVolume, &outputFile, "algo1");
       runAlgo(&algo2CubicBSplineMinimizer, &newVolume, &outputFile, "algo2");
       runAlgo(&algo3CubicBSplineMinimizer, &newVolume, &outputFile, "algo3");
@@ -173,6 +198,7 @@ int main(int argc, char* argv[]) {
       runAlgo(&algo6CubicBSplineMinimizer, &newVolume, &outputFile, "algo6");
       runAlgo(&algo7CubicBSplineMinimizer, &newVolume, &outputFile, "algo7");
       runAlgo(&algo8CubicBSplineMinimizer, &newVolume, &outputFile, "algo8");
+*/
     }
   }
 
