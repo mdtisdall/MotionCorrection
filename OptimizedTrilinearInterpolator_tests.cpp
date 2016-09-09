@@ -1,20 +1,23 @@
 #include "catch.hpp"
 
-#include "TrilinearInterpolator.h"
+#include "OptimizedTrilinearInterpolator.h"
+#include "CentralDifferenceDifferentiator.h"
 
 #include "VolumeAtAddressable.h"
 
 #include "Interpolator3D_tests.h"
+
+#include "BinaryFile.h"
 
 #include <vector>
 #include <complex>
 
 #include <sys/time.h>
 
-TEST_CASE("a trilinear interpolator can be created from a volume") {
-    typedef std::complex<float> dataT;
+TEST_CASE("an optimized trilinear interpolator can be created from a volume") {
+    typedef float dataT;
     typedef VolumeAtAddressable< std::vector<dataT> > VolumeT; 
-    typedef TrilinearInterpolator<VolumeT, float> InterpolatorT;
+    typedef OptimizedTrilinearInterpolator<VolumeT, float> InterpolatorT;
 
     const size_t cubeSize = 10;
     const size_t cubeVectorLength = cubeSize * cubeSize * cubeSize;
@@ -32,8 +35,8 @@ TEST_CASE("a trilinear interpolator can be created from a volume") {
     struct timeval timeBefore, timeAfter;
     
     gettimeofday(&timeBefore, NULL);
-    
-    InterpolatorTests<InterpolatorT>::identity_tests(&interpolator, &volume); 
+
+    InterpolatorTests<InterpolatorT>::identity_tests(&interpolator, &volume);
 
     SECTION("and all the points are averaged when interpolated in x") { 
         for(size_t z = 0; z < cubeSize; z++) {
@@ -85,13 +88,13 @@ TEST_CASE("a trilinear interpolator can be created from a volume") {
 
     WARN("elapsed time: " << elapsedTime << " ms");
 }
-      
+
 
 TEST_CASE(
-  "a trilinear interpolator can be created from a constant-valued volume") {
-    typedef std::complex<float> dataT;
+  "an optimized trilinear interpolator can be created from a constant-valued volume") {
+    typedef float dataT;
     typedef VolumeAtAddressable< std::vector<dataT> > VolumeT; 
-    typedef TrilinearInterpolator<VolumeT, float> InterpolatorT;
+    typedef OptimizedTrilinearInterpolator<VolumeT, float> InterpolatorT;
 
     const size_t cubeSize = 10;
     const size_t cubeVectorLength = cubeSize * cubeSize * cubeSize;
