@@ -60,6 +60,8 @@ int main(int argc, char* argv[]) {
    
   typedef MMParamTest<dataT> MMParamTestT;
   
+  typedef TrilinearInterpolator<VolumeT, dataT> TrilinearInterpolatorT; 
+  typedef TricubicInterpolator<VolumeT, dataT> TricubicInterpolatorT; 
   typedef CubicBSplineInterpolator<VolumeT, dataT> CubicBSplineInterpolatorT; 
   
   size_t cubeSize;
@@ -68,6 +70,10 @@ int main(int argc, char* argv[]) {
   dataT translationScaleMM;
   dataT rotationScaleMM;
 
+  bool isTrilinear = false;
+  bool isTricubic = false;
+  bool isCubicBSpline = false;
+
   try {
     TCLAP::CmdLine cmd("Registering vNav volumes", ' ', "dev");
 
@@ -75,6 +81,16 @@ int main(int argc, char* argv[]) {
     TCLAP::ValueArg<std::string> outputFileArg("o", "output", "Path to output file that will be written. Output file name should follow \"8mm_bspline_x_rot_3_0_to_5_0_deg_z_trans\"", true, "", "path", cmd);
     TCLAP::ValueArg<unsigned int> widthArg("", "width", "Number of voxels along the side of the vNav", true, 32, "integer", cmd);
     TCLAP::ValueArg<dataT> resolutionArg("", "res", "Size of a voxel's side in mm", true, 8, "mm", cmd);
+    TCLAP::SwitchArg linearInterpArg("", "linear", "Use trilinear interpoloation", false);
+    TCLAP::SwitchArg cubicInterpArg("", "cubic", "Use tricubic interpoloation", false);
+    TCLAP::SwitchArg cubicBSplineInterpArg("", "cubicBSpline", "Use cubic B-spline interpoloation", false);
+
+    std::vector<TCLAP::Arg*>  xorlist;
+    xorlist.push_back(&linearInterpArg);
+    xorlist.push_back(&cubicInterpArg);
+    xorlist.push_back(&cubicBSplineInterpArg);
+
+    cmd.xorAdd( xorlist );
 
     cmd.parse(argc, argv);
 
@@ -85,6 +101,10 @@ int main(int argc, char* argv[]) {
 
     translationScaleMM = resolutionArg.getValue();
     rotationScaleMM = 100.0;
+
+    isTrilinear = linearInterpArg.getValue();
+    isTricubic = cubicInterpArg.getValue();
+    isCubicBSpline = cubicBSplineInterpArg.getValue();
 
   }   catch (TCLAP::ArgException &e) {
     std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
@@ -164,16 +184,40 @@ int main(int argc, char* argv[]) {
       CentralDiffDifferentiatorT;
     
     Algorithm5<
+      TrilinearInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo5TrilinearMinimizer( &refVolume, &convergenceTest);
+     
+    Algorithm5<
+      TricubicInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo5TricubicMinimizer( &refVolume, &convergenceTest);
+    
+    Algorithm5<
       CubicBSplineInterpolatorT,
       CentralDiffDifferentiatorT,
       MMParamTestT
       > algo5CubicBSplineMinimizer( &refVolume, &convergenceTest);
     
     Algorithm10<
+      TrilinearInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo10TrilinearMinimizer( &refVolume, &convergenceTest);
+    
+    Algorithm10<
+      TricubicInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo10TricubicMinimizer( &refVolume, &convergenceTest);
+    
+    Algorithm10<
       CubicBSplineInterpolatorT,
       CentralDiffDifferentiatorT,
       MMParamTestT
-      > algo10ubicBSplineMinimizer( &refVolume, &convergenceTest);
+      > algo10CubicBSplineMinimizer( &refVolume, &convergenceTest);
     
     VolumeT newVolume(cubeSize);
 
@@ -189,6 +233,16 @@ int main(int argc, char* argv[]) {
       }
       std::cout << "----------" << std::endl;
       std::cout << "step " << step << std::endl;
+
+      if(isTrilinear) {
+        runAlgo(&algo5TrilinearMinimizer, &newVolume, &outputFile, "algo5");
+      }
+      if(isTricubic) {
+        runAlgo(&algo5TricubicMinimizer, &newVolume, &outputFile, "algo5");
+      }
+      if(isCubicBSpline) {
+        runAlgo(&algo5CubicBSplineMinimizer, &newVolume, &outputFile, "algo5");
+      }
 /*      
       runAlgo(&algo1CubicBSplineMinimizer, &newVolume, &outputFile, "algo1");
       runAlgo(&algo2CubicBSplineMinimizer, &newVolume, &outputFile, "algo2");

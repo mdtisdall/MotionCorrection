@@ -4,6 +4,11 @@
 #include "FFTWBuffer.h"
 #include "FFTOp.h"
 
+#include "TrilinearInterpolator.h"
+
+#include "TricubicInterpolator.h"
+#include "CentralDifferenceDifferentiator.h"
+
 #include "CubicBSplineInterpolator.h"
 
 #include "CircularMaskOp.h"
@@ -123,6 +128,78 @@ class AlgorithmBase {
   ConvergenceTestT *convergenceTest;
 };
 
+
+template <typename DataVolumeT>
+class AlgorithmInterpolatorFactory<
+    TrilinearInterpolator<
+      DataVolumeT, typename DataVolumeT::value_type
+      >
+  > {
+  protected: 
+  typedef TrilinearInterpolator<
+    DataVolumeT,
+    typename DataVolumeT::value_type
+    > InterpolatorT;
+
+  public:
+
+  static InterpolatorT* newInterpolator(
+    DataVolumeT *fourierMaskedRefVol) {
+    return new InterpolatorT(fourierMaskedRefVol);
+  }
+};
+
+template <typename DataVolumeT>
+class AlgorithmInterpolatorFactory<
+    TricubicInterpolator<
+      DataVolumeT, typename DataVolumeT::value_type
+      >
+  > {
+  protected: 
+  typedef TricubicInterpolator<
+    DataVolumeT,
+    typename DataVolumeT::value_type
+    > InterpolatorT;
+
+  public:
+
+  static InterpolatorT* newInterpolator(
+    DataVolumeT *fourierMaskedRefVol) {
+   
+    const size_t cubeSize = fourierMaskedRefVol->cubeSize;
+
+    CentralDifferencesDifferentiator<DataVolumeT>
+      volDiffer(fourierMaskedRefVol);
+    DataVolumeT dx(cubeSize);
+    volDiffer.xDerivative(&dx);
+
+    DataVolumeT dy(cubeSize);
+    volDiffer.yDerivative(&dy);
+
+    DataVolumeT dz(cubeSize);
+    volDiffer.zDerivative(&dz);
+
+    CentralDifferencesDifferentiator<DataVolumeT> dxDiffer(&dx);
+   
+    DataVolumeT dxy(cubeSize);
+    dxDiffer.yDerivative(&dxy);
+    
+    DataVolumeT dxz(cubeSize);
+    dxDiffer.zDerivative(&dxz);
+
+    CentralDifferencesDifferentiator<DataVolumeT> dyDiffer(&dy);
+
+    DataVolumeT dyz(cubeSize);
+    dyDiffer.zDerivative(&dyz);
+
+    CentralDifferencesDifferentiator<DataVolumeT> dxyDiffer(&dxy);
+    
+    DataVolumeT dxyz(cubeSize);
+    dxyDiffer.zDerivative(&dxyz);
+    return new InterpolatorT(
+      fourierMaskedRefVol, &dx, &dy, &dz, &dxy, &dxz, &dyz, &dxyz);
+  }
+};
 
 template <typename DataVolumeT>
 class AlgorithmInterpolatorFactory<
