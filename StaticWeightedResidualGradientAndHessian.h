@@ -20,6 +20,7 @@ public:
     CoordT > ParentT;
   typedef typename ParentT::PointListT PointListT;
   typedef typename ParentT::PointT PointT;
+  typedef typename ParentT::ParamT ParamT; 
   typedef Eigen::Matrix<T, Eigen::Dynamic, 1> ResidualT;
   typedef Eigen::Matrix< T, 6, Eigen::Dynamic > ResidualGradientT;
   typedef Eigen::Matrix< T, 6, 6 > ResidualHessianT;
@@ -39,6 +40,7 @@ public:
   
   void initializeResidualGradientAndApproxHessian(
     const PointListT *pointList,
+    const ParamT *curParam,
     const VolumeT *refdz,
     const VolumeT *refdy,
     const VolumeT *refdx,
@@ -90,7 +92,7 @@ public:
     //  residualGradient->col(0).transpose() << std::endl;
    
     updateResidualGradientAndApproxHessian(
-      pointList, refdz, refdy, refdx,
+      pointList, curParam, refdz, refdy, refdx,
       residualGradient, approxResidualHessian, residualHessianLDL);
 
     if(NULL != elapsedTime) { 
@@ -106,6 +108,7 @@ public:
   
   void updateResidualGradientAndApproxHessian(
     const PointListT *pointList,
+    const ParamT *curParam,
     const VolumeT *refdz,
     const VolumeT *refdy,
     const VolumeT *refdx,

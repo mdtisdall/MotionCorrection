@@ -21,6 +21,8 @@ class VolumeAtAddressable : public AtAddressableT {
     cubeSizeInt(cubeSize),
     cubeSizeFloat(cubeSize),
     cubeSizeDouble(cubeSize),
+    halfCubeSizeFloat(cubeSizeFloat / 2.0),
+    halfCubeSizeDouble(cubeSizeDouble / 2.0),
     totalPoints(cubeSize * cubeSize * cubeSize),
     maxCubeIndex(cubeSize - 1),
     buffer(&(asAtAddressable().at(0)))
@@ -35,6 +37,8 @@ class VolumeAtAddressable : public AtAddressableT {
     cubeSizeInt(cubeSize),
     cubeSizeFloat(cubeSize),
     cubeSizeDouble(cubeSize),
+    halfCubeSizeFloat(cubeSizeFloat / 2.0),
+    halfCubeSizeDouble(cubeSizeDouble / 2.0),
     totalPoints(cubeSize * cubeSize * cubeSize),
     maxCubeIndex(cubeSize - 1),
     buffer(&(asAtAddressable().at(0)))
@@ -49,6 +53,8 @@ class VolumeAtAddressable : public AtAddressableT {
     cubeSizeInt(cubeSize),
     cubeSizeFloat(cubeSize),
     cubeSizeDouble(cubeSize),
+    halfCubeSizeFloat(cubeSizeFloat / 2.0),
+    halfCubeSizeDouble(cubeSizeDouble / 2.0),
     totalPoints(cubeSize * cubeSize * cubeSize),
     maxCubeIndex(cubeSize - 1),
     buffer(&(asAtAddressable().at(0)))
@@ -146,6 +152,30 @@ class VolumeAtAddressable : public AtAddressableT {
         //return std::fmod(index + cubeSizeDouble, cubeSizeDouble);
     }
     
+    float wrapCoord(float coord) const {
+        while(coord < - halfCubeSizeFloat) {
+          coord += cubeSizeFloat; 
+        }
+
+        while(coord >= halfCubeSizeFloat) {
+          coord -= cubeSizeFloat;  
+        }
+
+        return coord;
+    }
+    
+    double wrapCoord(double coord) const {
+        while(coord < - halfCubeSizeDouble) {
+          coord += cubeSizeDouble; 
+        }
+
+        while(coord >= halfCubeSizeDouble) {
+          coord -= cubeSizeDouble;  
+        }
+
+        return coord;
+    }
+    
 
   protected:
     AtAddressableT& asAtAddressable() {  
@@ -161,6 +191,8 @@ class VolumeAtAddressable : public AtAddressableT {
     const int cubeSizeInt; 
     const float cubeSizeFloat; 
     const double cubeSizeDouble; 
+    const float halfCubeSizeFloat; 
+    const double halfCubeSizeDouble; 
     const size_t totalPoints;
     const size_t maxCubeIndex; 
     value_type* buffer;

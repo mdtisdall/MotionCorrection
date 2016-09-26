@@ -39,7 +39,8 @@ public:
     interpRef(interpRef),
     weightFunc(cubeSize),
     interpPoints(cubeSize * cubeSize * cubeSize, 1),
-    weightPoints(cubeSize * cubeSize * cubeSize, 1)
+    weightPoints(cubeSize * cubeSize * cubeSize, 1),
+    unweightedResidual(cubeSize * cubeSize * cubeSize, 1)
     {}
 
   void operator() (
@@ -94,8 +95,13 @@ public:
 //    std::cout << "interpPoints[12305]: " << interpPoints(12305) << std::endl;
 //    std::cout << "newVolVec[12305]: " << (*newVolVec)(12305) << std::endl;
 
-    residual->array() = weightPoints.array() *
-      (interpPoints.array() - (*newVolVec).array());
+    unweightedResidual.array() = interpPoints.array() - (*newVolVec).array();
+
+    residual->array() = weightPoints.array() * unweightedResidual.array();
+  }
+
+  const ResidualT* getUnweightedResidual() {
+    return &unweightedResidual; 
   }
 
 protected:
@@ -103,6 +109,7 @@ protected:
   const WeightFunction<T> weightFunc;
   ResidualT interpPoints;
   ResidualT weightPoints;
+  ResidualT unweightedResidual;
 
 };
 

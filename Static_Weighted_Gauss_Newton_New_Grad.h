@@ -92,10 +92,13 @@ class Static_Weighted_Gauss_Newton_New_Grad :
       if(NULL != elapsedTime) {
         gettimeofday(&timeBefore, NULL);
       }
+      
+      this->computeResidual(newVolume, initialParam);
      
       this->residualGradientAndHessian->
         initializeResidualGradientAndApproxHessian(
           &(this->pointList),
+          initialParam,
           newdz, newdy, newdx,
           &(this->residualGradient), &(this->approxResidualHessian),
           &(this->residualHessianLDL),

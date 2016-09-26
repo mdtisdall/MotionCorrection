@@ -117,7 +117,21 @@ class Gauss_Newton {
         ( RotationT(-angle, rotAxis) * TranslationT(-param->head(3)) ) *
         (*pointList);
     }
-    
+   
+    void computeResidual(
+      const VolumeT *newVolume,
+      const ParamT *curParam) {
+
+      transformPointListWithParam(
+        curParam, &pointList, &transformedPointList);
+      
+      NewVolVecT newVolVec(
+        newVolume->buffer,
+        this->cubeSize * this->cubeSize * this->cubeSize, 1);
+      
+      (*residualOp)(newVolume, &newVolVec, &transformedPointList,
+        curParam, &residual);
+    }
 
     void minimize(
       const VolumeT *newVolume,
@@ -147,18 +161,11 @@ class Gauss_Newton {
       ParamT curParam = *initialParam;
       ParamT prevParam = curParam;
 
-      NewVolVecT newVolVec(
-        newVolume->buffer,
-        this->cubeSize * this->cubeSize * this->cubeSize, 1);
 
       ParamT reducedResidual;
       size_t step = 0;
-
-      transformPointListWithParam(
-        &curParam, &pointList, &transformedPointList);
-      
-      (*residualOp)(newVolume, &newVolVec, &transformedPointList,
-        &curParam, &residual); 
+    
+      computeResidual(newVolume, &curParam);
 
       T prevResidualNorm = this->residual.norm();
         
@@ -180,7 +187,27 @@ class Gauss_Newton {
         
 //        std::cout << "residualGradient(12305): " << std::endl <<
 //          residualGradient.col(12305).transpose() << std::endl;
-       
+
+//        if(step == 1) 
+//        {
+//          std::string filePath("Moving_Weighted_Gauss_Newton_Fixed_M_New_Grad_tests/residualGradient");
+//          int outputFile = open(filePath.c_str(), O_WRONLY | O_CREAT, 0600);
+//    
+//          if(-1 == outputFile) {
+//            std::cerr << "Could not open file: " << filePath << std::endl;
+//            exit(1);
+//          }
+//
+//          int bytesWritten = 
+//              ::write(outputFile, residualGradient.data(),
+//                sizeof(T) * 6 * this->cubeSize * this->cubeSize * this->cubeSize);
+//    
+//          close(outputFile);
+//          
+//          exit(0);
+//        }
+
+
 //        {
 //          std::string filePath("Static_Weighted_Gauss_Newton_New_Grad_tests/residual_" + std::to_string(step));
 //          int outputFile = open(filePath.c_str(), O_WRONLY | O_CREAT, 0600);
@@ -199,6 +226,9 @@ class Gauss_Newton {
 
         reducedResidual.noalias() = this->residualGradient * this->residual;
     
+//        std::cout << "approxResidualHessian: " << std::endl <<
+//          this->approxResidualHessian << std::endl;
+//        
 //        std::cout << "reducedResidual: " << std::endl <<
 //          reducedResidual.transpose() << std::endl;
 
@@ -227,11 +257,7 @@ class Gauss_Newton {
           ParamT newParam =
             ParamAccumulatorT::accumulate(&curParam, &paramUpdate);
 
-          transformPointListWithParam(
-            &newParam, &pointList, &transformedPointList);
-      
-          (*residualOp)(newVolume, &newVolVec, &transformedPointList,
-            &newParam, &residual);
+          computeResidual(newVolume, &newParam);
 
           T newResidualNorm = this->residual.norm();
 
@@ -265,7 +291,8 @@ class Gauss_Newton {
         }
 
         residualGradientAndHessian->updateResidualGradientAndApproxHessian(
-          &transformedPointList, 
+          &transformedPointList,
+          &curParam,
           refdz, refdy, refdx,
           &residualGradient, &approxResidualHessian, 
           &residualHessianLDL);

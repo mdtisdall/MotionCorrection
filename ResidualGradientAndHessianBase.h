@@ -7,6 +7,7 @@ class ResidualGradientAndHessianBase {
 public:
   typedef Eigen::Matrix< T, 3, 1 > PointT;
   typedef Eigen::Matrix< T, 3, Eigen::Dynamic > PointListT;
+  typedef typename Eigen::Matrix<T, 6, 1> ParamT;
 
 protected:
 
