@@ -24,7 +24,7 @@ public:
     CoordT > ParentT;
   typedef typename ParentT::PointListT PointListT;
   typedef typename ParentT::PointT PointT;
-  typedef typename Eigen::Matrix<T, 6, 1> ParamT;
+  typedef typename ParentT::ParamT ParamT; 
   typedef Eigen::Matrix<T, Eigen::Dynamic, 1> ResidualT;
   typedef Eigen::Matrix< T, 6, Eigen::Dynamic > ResidualGradientT;
   typedef Eigen::Matrix< T, 6, 6 > ResidualHessianT;
