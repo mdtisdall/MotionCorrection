@@ -4,7 +4,7 @@
 #include "Gauss_Newton.h"
 
 #include "StaticWeightedResidualOp.h"
-#include "MovingWeightedFixedMNewGradResidualGradientAndHessian.h"
+#include "MovingWeightedFixedMResidualGradientAndHessian.h"
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -26,7 +26,7 @@ template <
 class Moving_Weighted_Gauss_Newton_Fixed_M_Ref_Grad : 
   Gauss_Newton <
     StaticWeightedResidualOp<_InterpolatorT>,
-    MovingWeightedFixedMNewGradResidualGradientAndHessian<
+    MovingWeightedFixedMResidualGradientAndHessian<
       typename _InterpolatorT::VolumeT,
       typename _InterpolatorT::CoordT,
       _WeightFuncT,
@@ -39,7 +39,7 @@ class Moving_Weighted_Gauss_Newton_Fixed_M_Ref_Grad :
   public:
     typedef Gauss_Newton <
       StaticWeightedResidualOp<_InterpolatorT>,
-      MovingWeightedFixedMNewGradResidualGradientAndHessian<
+      MovingWeightedFixedMResidualGradientAndHessian<
         typename _InterpolatorT::VolumeT,
         typename _InterpolatorT::CoordT,
         _WeightFuncT,

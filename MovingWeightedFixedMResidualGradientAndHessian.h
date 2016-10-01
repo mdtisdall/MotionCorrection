@@ -1,5 +1,5 @@
-#ifndef MovingWeightedFixedMNewGradResidualGradientAndHessian_h
-#define MovingWeightedFixedMNewGradResidualGradientAndHessian_h
+#ifndef MovingWeightedFixedMResidualGradientAndHessian_h
+#define MovingWeightedFixedMResidualGradientAndHessian_h
 
 #include "ResidualGradientAndHessianBase.h"
 
@@ -9,7 +9,7 @@ template <
   typename _WeightFuncT,
   typename _WeightGradientFuncT,
   typename _ResidualOpT>
-class MovingWeightedFixedMNewGradResidualGradientAndHessian :
+class MovingWeightedFixedMResidualGradientAndHessian :
   public ResidualGradientAndHessianBase <
     typename _VolumeT::value_type,
     CoordT > {
@@ -30,7 +30,7 @@ public:
   typedef Eigen::Matrix< T, 6, 6 > ResidualHessianT;
   typedef Eigen::LDLT< ResidualHessianT, Eigen::Upper > ResidualHessianLDLT;
  
-  MovingWeightedFixedMNewGradResidualGradientAndHessian(
+  MovingWeightedFixedMResidualGradientAndHessian(
     const size_t cubeSize,
     const WeightFuncT *weightFunc,
     const WeightGradientFuncT *weightGradientFunc,
