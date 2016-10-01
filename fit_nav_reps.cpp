@@ -183,6 +183,24 @@ int main(int argc, char* argv[]) {
     typedef CentralDifferencesDifferentiator<VolumeT>
       CentralDiffDifferentiatorT;
     
+    Algorithm1<
+      TrilinearInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo1TrilinearMinimizer( &refVolume, &convergenceTest);
+     
+    Algorithm1<
+      TricubicInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo1TricubicMinimizer( &refVolume, &convergenceTest);
+    
+    Algorithm1<
+      CubicBSplineInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo1CubicBSplineMinimizer( &refVolume, &convergenceTest);
+    
     Algorithm2<
       TrilinearInterpolatorT,
       CentralDiffDifferentiatorT,
@@ -200,6 +218,24 @@ int main(int argc, char* argv[]) {
       CentralDiffDifferentiatorT,
       MMParamTestT
       > algo2CubicBSplineMinimizer( &refVolume, &convergenceTest);
+    
+    Algorithm3<
+      TrilinearInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo3TrilinearMinimizer( &refVolume, &convergenceTest);
+     
+    Algorithm3<
+      TricubicInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo3TricubicMinimizer( &refVolume, &convergenceTest);
+    
+    Algorithm3<
+      CubicBSplineInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo3CubicBSplineMinimizer( &refVolume, &convergenceTest);
     
     Algorithm4<
       TrilinearInterpolatorT,
@@ -271,19 +307,25 @@ int main(int argc, char* argv[]) {
       std::cout << "step " << step << std::endl;
 
       if(isTrilinear) {
+        runAlgo(&algo1TrilinearMinimizer, &newVolume, &outputFile, "algo1");
         runAlgo(&algo2TrilinearMinimizer, &newVolume, &outputFile, "algo2");
+        runAlgo(&algo3TrilinearMinimizer, &newVolume, &outputFile, "algo3");
         runAlgo(&algo4TrilinearMinimizer, &newVolume, &outputFile, "algo4");
         runAlgo(&algo5TrilinearMinimizer, &newVolume, &outputFile, "algo5");
         runAlgo(&algo10TrilinearMinimizer, &newVolume, &outputFile, "algo10");
       }
       if(isTricubic) {
+        runAlgo(&algo1TricubicMinimizer, &newVolume, &outputFile, "algo1");
         runAlgo(&algo2TricubicMinimizer, &newVolume, &outputFile, "algo2");
+        runAlgo(&algo3TricubicMinimizer, &newVolume, &outputFile, "algo3");
         runAlgo(&algo4TricubicMinimizer, &newVolume, &outputFile, "algo4");
         runAlgo(&algo5TricubicMinimizer, &newVolume, &outputFile, "algo5");
         runAlgo(&algo10TricubicMinimizer, &newVolume, &outputFile, "algo10");
       }
       if(isCubicBSpline) {
+        runAlgo(&algo1CubicBSplineMinimizer, &newVolume, &outputFile, "algo1");
         runAlgo(&algo2CubicBSplineMinimizer, &newVolume, &outputFile, "algo2");
+        runAlgo(&algo3CubicBSplineMinimizer, &newVolume, &outputFile, "algo3");
         runAlgo(&algo4CubicBSplineMinimizer, &newVolume, &outputFile, "algo4");
         runAlgo(&algo5CubicBSplineMinimizer, &newVolume, &outputFile, "algo5");
         runAlgo(&algo10CubicBSplineMinimizer, &newVolume, &outputFile, "algo10");
