@@ -1,9 +1,7 @@
 #ifndef Moving_Weighted_Gauss_Newton_Fixed_M_Ref_Grad_h
 #define Moving_Weighted_Gauss_Newton_Fixed_M_Ref_Grad_h
 
-#include "Gauss_Newton.h"
-
-#include "StaticWeightedResidualOp.h"
+#include "Moving_Weighted_Gauss_Newton_Ref_Grad.h"
 #include "MovingWeightedFixedMResidualGradientAndHessian.h"
 
 #include <fcntl.h>
@@ -24,8 +22,7 @@ template <
   typename _ConvergenceTestT = void
   >
 class Moving_Weighted_Gauss_Newton_Fixed_M_Ref_Grad : 
-  Gauss_Newton <
-    StaticWeightedResidualOp<_InterpolatorT>,
+  public Moving_Weighted_Gauss_Newton_Ref_Grad <
     MovingWeightedFixedMResidualGradientAndHessian<
       typename _InterpolatorT::VolumeT,
       typename _InterpolatorT::CoordT,
@@ -35,10 +32,11 @@ class Moving_Weighted_Gauss_Newton_Fixed_M_Ref_Grad :
       >,
     _InterpolatorT, 
     _ParamAccumulatorT,
+    _WeightFuncT,
+    _WeightGradientFuncT,
     _ConvergenceTestT >{
   public:
-    typedef Gauss_Newton <
-      StaticWeightedResidualOp<_InterpolatorT>,
+    typedef Moving_Weighted_Gauss_Newton_Ref_Grad <
       MovingWeightedFixedMResidualGradientAndHessian<
         typename _InterpolatorT::VolumeT,
         typename _InterpolatorT::CoordT,
@@ -48,6 +46,8 @@ class Moving_Weighted_Gauss_Newton_Fixed_M_Ref_Grad :
         >,
       _InterpolatorT,
       _ParamAccumulatorT,
+      _WeightFuncT,
+      _WeightGradientFuncT,
       _ConvergenceTestT > Parent;
     typedef typename Parent::ResidualOpT ResidualOpT;
     typedef typename Parent::ResidualGradientAndHessianT
@@ -71,73 +71,14 @@ class Moving_Weighted_Gauss_Newton_Fixed_M_Ref_Grad :
       double *gradientAndHessianComputeTime = NULL
       ) :
       Parent(
-        interpRef,
-        new ResidualOpT(refdz->cubeSize, interpRef),
-        new ResidualGradientAndHessianT(
-          refdz->cubeSize, weightFunc, weightGradientFunc, NULL, NULL),
-        refdz->cubeSize),
-      refdz(refdz),
-      refdy(refdy),
-      refdx(refdx){
-        this->residualGradientAndHessian->setResidualOp(this->residualOp);
-        this->residualGradientAndHessian->setInitialPointList(
-          &(this->pointList)); 
-      }
+        interpRef, refdz, refdy, refdx,
+        weightFunc, weightGradientFunc,
+        gradientAndHessianComputeTime) {}
 
   protected:
     typedef typename Parent::NewVolVecT NewVolVecT;
     typedef typename Parent::PointListT PointListT;
     
-    const VolumeT *refdz;
-    const VolumeT *refdy;
-    const VolumeT *refdx;
-
-  public:
-    
-    void minimize(
-      const VolumeT *newVolume,
-      const ParamT *initialParam,
-      ParamT *finalParam,
-      const size_t maxSteps = 20,
-      const T stepSizeScale = 0.25,
-      const T stepSizeLimit = 0,
-      ConvergenceTestT *convergenceTest = NULL, 
-      size_t *elapsedSteps = NULL, 
-      double *elapsedTime = NULL,
-      double *gradientAndHessianComputeTime = NULL
-      ) {
-      struct timeval timeBefore, timeAfter;
-
-      if(NULL != elapsedTime) {
-        gettimeofday(&timeBefore, NULL);
-      }
-
-      this->computeResidual(newVolume, initialParam);
-
-      this->residualGradientAndHessian->
-        initializeResidualGradientAndApproxHessian(
-          &(this->pointList),
-          initialParam,
-          refdz, refdy, refdx, 
-          &(this->residualGradient), &(this->approxResidualHessian),
-          &(this->residualHessianLDL),
-          gradientAndHessianComputeTime);
-      
-      Parent::minimize(newVolume, this->refdz, this->refdy, this->refdx,
-        initialParam, finalParam,
-        maxSteps, stepSizeScale, stepSizeLimit,
-        convergenceTest, 
-        elapsedSteps);
-
-      if(NULL != elapsedTime) { 
-        gettimeofday(&timeAfter, NULL);
-  
-        *elapsedTime =
-          ((double) (timeAfter.tv_sec - timeBefore.tv_sec)) * 1000.0 +
-          ((double) (timeAfter.tv_usec - timeBefore.tv_usec)) * 0.001;
-      }
-    }
-
 };
 
 
