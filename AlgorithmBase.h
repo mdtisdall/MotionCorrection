@@ -14,6 +14,7 @@
 #include "CircularMaskOp.h"
 
 #include "WeightFunction.h"
+#include "DerivWeightFunction.h"
 
 #include <sys/time.h>
 
@@ -31,6 +32,7 @@ class AlgorithmBase {
   typedef typename DataVolumeT::value_type dataT;
   typedef typename Eigen::Matrix<dataT, 6, 1> ParamT;
   typedef WeightFunction<dataT> WeightFunctionT;
+  typedef DerivWeightFunction<dataT> WeightGradientFunctionT;
   typedef FFTOp<dataT> DataFFTOpT;
   typedef typename DataFFTOpT::fourierVolumeT ComplexVolumeT; 
   typedef CircularMaskOp< ComplexVolumeT, 
@@ -49,6 +51,7 @@ class AlgorithmBase {
     cubeVectorLength(refVol->totalPoints),
     interpolator(NULL),
     weightFunction(cubeSize),
+    weightGradientFunction(cubeSize),
     fourierMaskedRefVol(cubeSize),
     fourierMaskedNewVol(cubeSize),
     fourierMaskOp(cubeSize,
@@ -120,6 +123,7 @@ class AlgorithmBase {
   const size_t cubeVectorLength; 
   InterpolatorT *interpolator;
   WeightFunctionT weightFunction;
+  WeightGradientFunctionT weightGradientFunction;
   DataVolumeT fourierMaskedRefVol;
   DataVolumeT fourierMaskedNewVol;
   ComplexDataCircularMaskOpT fourierMaskOp;
