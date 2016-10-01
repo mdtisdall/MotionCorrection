@@ -57,6 +57,7 @@ TESTOBJECTS += FFTOp.o
 TESTOBJECTS += Moving_Weighted_Gauss_Newton_Fixed_M_New_Grad_tests.o
 TESTOBJECTS += Moving_Weighted_Gauss_Newton_Fixed_M_Ref_Grad_tests.o
 TESTOBJECTS += Moving_Weighted_Gauss_Newton_Moving_M_New_Grad_tests.o
+TESTOBJECTS += Moving_Weighted_Gauss_Newton_Moving_M_Ref_Grad_tests.o
 #TESTOBJECTS += CircularMaskOp_tests.o
 #TESTOBJECTS += Weighted_Gauss_Newton_Ref_Grad_tests.o
 #TESTOBJECTS += Weighted_Gauss_Newton_New_Grad_tests.o
