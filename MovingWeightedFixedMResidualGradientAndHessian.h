@@ -1,7 +1,7 @@
 #ifndef MovingWeightedFixedMResidualGradientAndHessian_h
 #define MovingWeightedFixedMResidualGradientAndHessian_h
 
-#include "ResidualGradientAndHessianBase.h"
+#include "MovingWeightedResidualGradientAndHessian.h"
 
 template <
   typename _VolumeT,
@@ -10,18 +10,24 @@ template <
   typename _WeightGradientFuncT,
   typename _ResidualOpT>
 class MovingWeightedFixedMResidualGradientAndHessian :
-  public ResidualGradientAndHessianBase <
-    typename _VolumeT::value_type,
-    CoordT > {
+  public MovingWeightedResidualGradientAndHessian <
+    _VolumeT,
+    CoordT,
+    _WeightFuncT,
+    _WeightGradientFuncT,
+    _ResidualOpT> {
 public:
   typedef _VolumeT VolumeT;
   typedef _WeightFuncT WeightFuncT;
   typedef _WeightGradientFuncT WeightGradientFuncT;
   typedef _ResidualOpT ResidualOpT;
   typedef typename VolumeT::value_type T;
-  typedef ResidualGradientAndHessianBase <
-    typename _VolumeT::value_type,
-    CoordT > ParentT;
+  typedef MovingWeightedResidualGradientAndHessian <
+    _VolumeT,
+    CoordT,
+    _WeightFuncT,
+    _WeightGradientFuncT,
+    _ResidualOpT> ParentT;
   typedef typename ParentT::PointListT PointListT;
   typedef typename ParentT::PointT PointT;
   typedef typename ParentT::ParamT ParamT; 
@@ -71,6 +77,10 @@ public:
     RefDMatT refDzMat(refdz->buffer, refdz->totalPoints);      
     RefDMatT refDyMat(refdy->buffer, refdy->totalPoints);      
     RefDMatT refDxMat(refdx->buffer, refdx->totalPoints);      
+
+    this->refdz = refdz; 
+    this->refdy = refdy; 
+    this->refdx = refdx; 
 
     // the first three colums of the M matrix are just negative copies
     // of the spatial gradients
@@ -234,6 +244,7 @@ public:
   
   
 protected:  
+  const GradientT *refdz, *refdy, *refdx; 
   const WeightFuncT *weightFunc;
   const WeightGradientFuncT *weightGradientFunc;
   ResidualOpT *residualOp;

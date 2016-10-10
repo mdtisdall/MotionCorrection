@@ -5,6 +5,8 @@
 
 #include "StaticWeightedResidualOp.h"
 
+#include "MovingWeightedResidualGradientAndHessian.h"
+
 #include <fcntl.h>
 #include <unistd.h>
 #ifdef LINUX
@@ -16,7 +18,6 @@
 #include <cfloat>
 
 template <
-  typename _ResidualGradientAndHessianT,
   typename _InterpolatorT,
   typename _ParamAccumulatorT,
   typename _WeightFuncT,
@@ -26,20 +27,31 @@ template <
 class Moving_Weighted_Gauss_Newton_Ref_Grad : 
   Gauss_Newton <
     StaticWeightedResidualOp<_InterpolatorT>,
-    _ResidualGradientAndHessianT,
+    MovingWeightedResidualGradientAndHessian<
+      typename _InterpolatorT::VolumeT,
+      typename _InterpolatorT::CoordT,
+      _WeightFuncT,
+      _WeightGradientFuncT,
+      StaticWeightedResidualOp<_InterpolatorT>
+      >,
     _InterpolatorT, 
     _ParamAccumulatorT,
     _ConvergenceTestT >{
   public:
+    typedef MovingWeightedResidualGradientAndHessian<
+      typename _InterpolatorT::VolumeT,
+      typename _InterpolatorT::CoordT,
+      _WeightFuncT,
+      _WeightGradientFuncT,
+      StaticWeightedResidualOp<_InterpolatorT>
+      > ResidualGradientAndHessianT;
     typedef Gauss_Newton <
       StaticWeightedResidualOp<_InterpolatorT>,
-      _ResidualGradientAndHessianT,
+      ResidualGradientAndHessianT,
       _InterpolatorT,
       _ParamAccumulatorT,
       _ConvergenceTestT > Parent;
     typedef typename Parent::ResidualOpT ResidualOpT;
-    typedef typename Parent::ResidualGradientAndHessianT
-      ResidualGradientAndHessianT;
     typedef _WeightFuncT WeightFuncT;
     typedef _WeightGradientFuncT WeightGradientFuncT;
     typedef typename Parent::InterpolatorT InterpolatorT;
