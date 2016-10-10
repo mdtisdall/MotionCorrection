@@ -43,7 +43,10 @@ public:
     initialPointList(initialPointList),
     weightFuncPoints(cubeSize * cubeSize * cubeSize, 1),
     unweightedResidualGradient(6, cubeSize * cubeSize * cubeSize),
-    weightGradientPointList(3, cubeSize * cubeSize * cubeSize)
+    weightGradientPointList(3, cubeSize * cubeSize * cubeSize),
+    jointGradDz(cubeSize),
+    jointGradDy(cubeSize),
+    jointGradDx(cubeSize)
     {}
 
 
@@ -65,7 +68,7 @@ public:
     if(NULL != elapsedTime) {
       gettimeofday(&timeBefore, NULL);
     }
-     
+
     updateResidualGradientAndApproxHessian(
       pointList, curParam, refdz, refdy, refdx,
       residualGradient, approxResidualHessian, residualHessianLDL);
@@ -93,54 +96,14 @@ public:
     double *elapsedTime = NULL 
     ) {
     
-    typedef Eigen::Map< Eigen::Matrix<T, 1, Eigen::Dynamic > > RefDMatT;
-    
-    RefDMatT refDzMat(refdz->buffer, refdz->totalPoints);      
-    RefDMatT refDyMat(refdy->buffer, refdy->totalPoints);      
-    RefDMatT refDxMat(refdx->buffer, refdx->totalPoints);      
-
-    // the first three colums of the M matrix are just negative copies
-    // of the spatial gradients
-    unweightedResidualGradient.row(0).noalias() = -refDzMat;
-    unweightedResidualGradient.row(1).noalias() = -refDyMat;
-    unweightedResidualGradient.row(2).noalias() = -refDxMat;
-
-    // the last three colums of the M matrix are element-wise products 
-    // of the point-lists and the spatial gradients  
-    unweightedResidualGradient.row(3).array() =
-      pointList->row(2).array() * refDyMat.array();
-    
-    unweightedResidualGradient.row(3).array() -=
-      pointList->row(1).array() * refDxMat.array();
-   
-    unweightedResidualGradient.row(4).array() =
-      pointList->row(0).array() * refDxMat.array();
-    
-    unweightedResidualGradient.row(4).array() -=
-      pointList->row(2).array() * refDzMat.array();
-    
-    unweightedResidualGradient.row(5).array() =
-      pointList->row(1).array() * refDzMat.array();
-   
-    unweightedResidualGradient.row(5).array() -=
-      pointList->row(0).array() * refDyMat.array();
-
-    //std::cout << "residualGradient->col(0): " <<
-    //  residualGradient->col(0).transpose() << std::endl;
-    
     const size_t pointListLength = refdz->totalPoints;
-
-    PointT transPart = curParam->block(0,0,3,1);
-
-    for(size_t offset = 0; offset < pointListLength; offset++) {
-      PointT curPoint =
-        initialPointList->col(offset) - transPart;
-     
+    
+    for(size_t offset = 0; offset < pointListLength; offset++) { 
       PointT weightPoint;
 
-      weightPoint(0) = refdz->wrapCoord(curPoint(0));
-      weightPoint(1) = refdz->wrapCoord(curPoint(1));
-      weightPoint(2) = refdz->wrapCoord(curPoint(2));
+      weightPoint(0) = refdz->wrapCoord((*pointList)(0,offset));
+      weightPoint(1) = refdz->wrapCoord((*pointList)(1,offset));
+      weightPoint(2) = refdz->wrapCoord((*pointList)(2,offset));
        
       weightGradientPointList.col(offset) = weightPoint * ( 
         (*weightGradientFunc)(
@@ -166,13 +129,61 @@ public:
         ); 
     }
     
+    typedef Eigen::Map< Eigen::Matrix<T, 1, Eigen::Dynamic > > RefDMatT;
+    
+    RefDMatT jointGradDzMat(jointGradDz.buffer, jointGradDz.totalPoints);      
+    RefDMatT jointGradDyMat(jointGradDy.buffer, jointGradDy.totalPoints);      
+    RefDMatT jointGradDxMat(jointGradDx.buffer, jointGradDx.totalPoints);      
+    
+    RefDMatT refdzMat(refdz->buffer, refdz->totalPoints);      
+    RefDMatT refdyMat(refdy->buffer, refdy->totalPoints);      
+    RefDMatT refdxMat(refdx->buffer, refdx->totalPoints);      
+
+    jointGradDzMat.array() = weightFuncPoints.transpose().array() * refdzMat.array();
+    jointGradDyMat.array() = weightFuncPoints.transpose().array() * refdyMat.array();
+    jointGradDxMat.array() = weightFuncPoints.transpose().array() * refdxMat.array();
+
+/*
+    jointGradDzMat.array() += weightFuncPoints.transpose().array() * refdzMat.array();
+    jointGradDyMat.array() += weightFuncPoints.transpose().array() * refdyMat.array();
+    jointGradDxMat.array() += weightFuncPoints.transpose().array() * refdxMat.array();
+*/    
+    jointGradDzMat.array() += residualOp->getUnweightedResidual()->transpose().array() * weightGradientPointList.row(0).array();
+    jointGradDyMat.array() += residualOp->getUnweightedResidual()->transpose().array() * weightGradientPointList.row(1).array();
+    jointGradDxMat.array() += residualOp->getUnweightedResidual()->transpose().array() * weightGradientPointList.row(2).array();
+
+    // the first three colums of the M matrix are just negative copies
+    // of the spatial gradients
+    residualGradient->row(0).noalias() = -jointGradDzMat;
+    residualGradient->row(1).noalias() = -jointGradDyMat;
+    residualGradient->row(2).noalias() = -jointGradDxMat;
+
+    // the last three colums of the M matrix are element-wise products 
+    // of the point-lists and the spatial gradients  
+    residualGradient->row(3).array() =
+      pointList->row(2).array() * jointGradDyMat.array()
+      - pointList->row(1).array() * jointGradDxMat.array();
+   
+    residualGradient->row(4).array() =
+      pointList->row(0).array() * jointGradDxMat.array()
+      - pointList->row(2).array() * jointGradDzMat.array();
+    
+    residualGradient->row(5).array() =
+      pointList->row(1).array() * jointGradDzMat.array()
+      - pointList->row(0).array() * jointGradDyMat.array();
+
+    //std::cout << "residualGradient->col(0): " <<
+    //  residualGradient->col(0).transpose() << std::endl;
+    
+
+/*    
     // weight the residual gradients based on where our sample
     // points are now located
     for(unsigned int i = 0; i < 6; i++) {
       residualGradient->row(i).array() = 
         weightFuncPoints.transpose().array() * unweightedResidualGradient.row(i).array();
     }
-
+*/
 //    std::cout << "residualGradient.col(16832) just first term: " <<
 //      residualGradient->col(16832).transpose() << std::endl;
 //
@@ -181,7 +192,7 @@ public:
 //    
 //    std::cout << "weightGradientPointList.col(16832): " << 
 //      weightGradientPointList.col(16832).transpose() << std::endl;
-
+/*
     residualGradient->row(0).array() -= 
       weightGradientPointList.row(0).array() *
         residualOp->getUnweightedResidual()->transpose().array();
@@ -193,7 +204,7 @@ public:
     residualGradient->row(2).array() -= 
       weightGradientPointList.row(2).array() *
         residualOp->getUnweightedResidual()->transpose().array();
-    
+*/    
 //    std::cout << "residualGradient.col(16832): " <<
 //      residualGradient->col(16832).transpose() << std::endl;
 //
@@ -241,6 +252,7 @@ protected:
   ResidualT weightFuncPoints;
   ResidualGradientT unweightedResidualGradient;
   PointListT weightGradientPointList;
+  VolumeT jointGradDz, jointGradDy, jointGradDx;
 };
 
 #endif

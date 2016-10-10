@@ -72,8 +72,7 @@ public:
       PointT weightPoint;
 
       for(size_t i = 0; i < 3; i++) {
-        weightPoint(i) = newVol->wrapIndex(curPoint(i) + this->cubeSizeDiv2)
-          - this->cubeSizeDiv2;
+        weightPoint(i) = newVol->wrapCoord(curPoint(i));
       }
 
       weightPoints(offset, 0) =
