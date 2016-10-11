@@ -142,7 +142,7 @@ TEST_CASE("a Gauss-Newton minimizer using static weights and new-image gradients
     
     REQUIRE(cubeVectorLength * sizeof(dataT)
             == BinaryFile<VolumeT>::read(&refVolume,
-                "Weighted_Gauss_Newton_New_Grad_tests/refVolInput.dat"));
+                "Static_Weighted_Gauss_Newton_New_Grad_tests/refVolInput.dat"));
     
     DataFFTOpT fftOp(cubeSize);
   
@@ -154,7 +154,7 @@ TEST_CASE("a Gauss-Newton minimizer using static weights and new-image gradients
     
     REQUIRE(cubeVectorLength * sizeof(dataT)
             == BinaryFile<VolumeT>::read(&newVolume,
-                "Weighted_Gauss_Newton_New_Grad_tests/newVolInput.dat"));
+                "Static_Weighted_Gauss_Newton_New_Grad_tests/newVolInput.dat"));
     
     fftOp.forward(&newVolume, &fourierData);
     

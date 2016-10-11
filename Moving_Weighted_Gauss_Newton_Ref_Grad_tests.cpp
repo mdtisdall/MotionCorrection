@@ -148,7 +148,7 @@ TEST_CASE("a Gauss-Newton minimizer using moving weights, moving M, and referenc
     
     REQUIRE(cubeVectorLength * sizeof(dataT)
             == BinaryFile<VolumeT>::read(&refVolume,
-                "Weighted_Gauss_Newton_Ref_Grad_tests/refVolInput.dat"));
+                "Moving_Weighted_Gauss_Newton_Ref_Grad_tests/refVolInput.dat"));
     
     DataFFTOpT fftOp(cubeSize);
   
@@ -160,7 +160,7 @@ TEST_CASE("a Gauss-Newton minimizer using moving weights, moving M, and referenc
     
     REQUIRE(cubeVectorLength * sizeof(dataT)
             == BinaryFile<VolumeT>::read(&newVolume,
-                "Weighted_Gauss_Newton_Ref_Grad_tests/newVolInput.dat"));
+                "Moving_Weighted_Gauss_Newton_Ref_Grad_tests/newVolInput.dat"));
     
     fftOp.forward(&newVolume, &fourierData);
     
