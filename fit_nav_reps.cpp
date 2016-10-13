@@ -139,47 +139,7 @@ int main(int argc, char* argv[]) {
       paramUpdateMMLimit,
       translationScaleMM,
       rotationScaleMM);
-/*   
-    Algorithm1<
-      CubicBSplineInterpolatorT,
-      CentralDiffDifferentiatorT 
-      > algo1CubicBSplineMinimizer( &refVolume, &convergenceTest);
     
-    Algorithm2<
-      CubicBSplineInterpolatorT,
-      CentralDiffDifferentiatorT 
-      > algo2CubicBSplineMinimizer( &refVolume, &convergenceTest);
-    
-    Algorithm3<
-      CubicBSplineInterpolatorT,
-      CentralDiffDifferentiatorT 
-      > algo3CubicBSplineMinimizer( &refVolume, &convergenceTest);
-    
-    Algorithm4<
-      CubicBSplineInterpolatorT,
-      CentralDiffDifferentiatorT 
-      > algo4CubicBSplineMinimizer( &refVolume, &convergenceTest);
-
-    Algorithm5<
-      CubicBSplineInterpolatorT,
-      CentralDiffDifferentiatorT 
-      > algo5CubicBSplineMinimizer( &refVolume, &convergenceTest);
-    
-    Algorithm6<
-      CubicBSplineInterpolatorT,
-      CentralDiffDifferentiatorT 
-      > algo6CubicBSplineMinimizer( &refVolume, &convergenceTest);
-    
-    Algorithm7<
-      CubicBSplineInterpolatorT,
-      CentralDiffDifferentiatorT 
-      > algo7CubicBSplineMinimizer( &refVolume, &convergenceTest);
-    
-    Algorithm8<
-      CubicBSplineInterpolatorT,
-      CentralDiffDifferentiatorT 
-      > algo8CubicBSplineMinimizer( &refVolume, &convergenceTest);
-*/    
     typedef CentralDifferencesDifferentiator<VolumeT>
       CentralDiffDifferentiatorT;
     
@@ -200,7 +160,7 @@ int main(int argc, char* argv[]) {
       CentralDiffDifferentiatorT,
       MMParamTestT
       > algo1CubicBSplineMinimizer( &refVolume, &convergenceTest);
-    
+     
     Algorithm2<
       TrilinearInterpolatorT,
       CentralDiffDifferentiatorT,
@@ -218,7 +178,7 @@ int main(int argc, char* argv[]) {
       CentralDiffDifferentiatorT,
       MMParamTestT
       > algo2CubicBSplineMinimizer( &refVolume, &convergenceTest);
-    
+     
     Algorithm3<
       TrilinearInterpolatorT,
       CentralDiffDifferentiatorT,
@@ -253,8 +213,8 @@ int main(int argc, char* argv[]) {
       CubicBSplineInterpolatorT,
       CentralDiffDifferentiatorT,
       MMParamTestT
-      > algo4CubicBSplineMinimizer( &refVolume, &convergenceTest); 
-    
+      > algo4CubicBSplineMinimizer( &refVolume, &convergenceTest);
+     
     Algorithm5<
       TrilinearInterpolatorT,
       CentralDiffDifferentiatorT,
@@ -273,23 +233,23 @@ int main(int argc, char* argv[]) {
       MMParamTestT
       > algo5CubicBSplineMinimizer( &refVolume, &convergenceTest);
     
-    Algorithm10<
+    Algorithm6<
       TrilinearInterpolatorT,
       CentralDiffDifferentiatorT,
       MMParamTestT
-      > algo10TrilinearMinimizer( &refVolume, &convergenceTest);
+      > algo6TrilinearMinimizer( &refVolume, &convergenceTest);
     
-    Algorithm10<
+    Algorithm6<
       TricubicInterpolatorT,
       CentralDiffDifferentiatorT,
       MMParamTestT
-      > algo10TricubicMinimizer( &refVolume, &convergenceTest);
+      > algo6TricubicMinimizer( &refVolume, &convergenceTest);
     
-    Algorithm10<
+    Algorithm6<
       CubicBSplineInterpolatorT,
       CentralDiffDifferentiatorT,
       MMParamTestT
-      > algo10CubicBSplineMinimizer( &refVolume, &convergenceTest);
+      > algo6CubicBSplineMinimizer( &refVolume, &convergenceTest);
     
     VolumeT newVolume(cubeSize);
 
@@ -312,7 +272,7 @@ int main(int argc, char* argv[]) {
         runAlgo(&algo3TrilinearMinimizer, &newVolume, &outputFile, "algo3");
         runAlgo(&algo4TrilinearMinimizer, &newVolume, &outputFile, "algo4");
         runAlgo(&algo5TrilinearMinimizer, &newVolume, &outputFile, "algo5");
-        runAlgo(&algo10TrilinearMinimizer, &newVolume, &outputFile, "algo10");
+        runAlgo(&algo6TrilinearMinimizer, &newVolume, &outputFile, "algo6");
       }
       if(isTricubic) {
         runAlgo(&algo1TricubicMinimizer, &newVolume, &outputFile, "algo1");
@@ -320,7 +280,7 @@ int main(int argc, char* argv[]) {
         runAlgo(&algo3TricubicMinimizer, &newVolume, &outputFile, "algo3");
         runAlgo(&algo4TricubicMinimizer, &newVolume, &outputFile, "algo4");
         runAlgo(&algo5TricubicMinimizer, &newVolume, &outputFile, "algo5");
-        runAlgo(&algo10TricubicMinimizer, &newVolume, &outputFile, "algo10");
+        runAlgo(&algo6TricubicMinimizer, &newVolume, &outputFile, "algo6");
       }
       if(isCubicBSpline) {
         runAlgo(&algo1CubicBSplineMinimizer, &newVolume, &outputFile, "algo1");
@@ -328,7 +288,7 @@ int main(int argc, char* argv[]) {
         runAlgo(&algo3CubicBSplineMinimizer, &newVolume, &outputFile, "algo3");
         runAlgo(&algo4CubicBSplineMinimizer, &newVolume, &outputFile, "algo4");
         runAlgo(&algo5CubicBSplineMinimizer, &newVolume, &outputFile, "algo5");
-        runAlgo(&algo10CubicBSplineMinimizer, &newVolume, &outputFile, "algo10");
+        runAlgo(&algo6CubicBSplineMinimizer, &newVolume, &outputFile, "algo6");
       }
     }
   }

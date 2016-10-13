@@ -1,5 +1,5 @@
-#ifndef Algorithms5And10Base_h
-#define Algorithms5And10Base_h
+#ifndef Algorithms3And6Base_h
+#define Algorithms3And6Base_h
 
 namespace Algorithms {
 
@@ -9,7 +9,7 @@ template <
   typename ConvergenceTestT,
   typename ParamAccumulatorT
   >
-class Algorithm5and10Base : public AlgorithmBase <
+class Algorithm3and6Base : public AlgorithmBase <
   InterpolatorT,
   ConvergenceTestT
   > {
@@ -28,7 +28,7 @@ public:
     WeightFunctionT,
     ConvergenceTestT > MinimizerT; 
 
-  Algorithm5and10Base(VolumeT *refVol, ConvergenceTestT *convergenceTest) :
+  Algorithm3and6Base(VolumeT *refVol, ConvergenceTestT *convergenceTest) :
     ParentT(refVol, convergenceTest),
     minimizer(this->interpolator, this->cubeSize, &(this->weightFunction)) {
     
