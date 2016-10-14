@@ -96,7 +96,7 @@ public:
     double *elapsedTime = NULL 
     ) {
     
-    const size_t pointListLength = refdz->totalPoints;
+    size_t pointListLength = refdz->totalPoints;
     
     for(size_t offset = 0; offset < pointListLength; offset++) { 
       PointT weightPoint;

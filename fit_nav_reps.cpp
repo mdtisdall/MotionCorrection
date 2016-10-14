@@ -24,7 +24,8 @@ void runAlgo(
   Algo *algo,
   typename Algo::VolumeT *newVolume,
   std::ofstream *outputFile,
-  std::string algoName) 
+  std::string algoName,
+  std::string interpName) 
 {
   typedef typename Algo::ParamT ParamT;
   typedef typename Algo::VolumeT VolumeT;
@@ -47,9 +48,9 @@ void runAlgo(
   (*outputFile) << elapsedTime << " " << elapsedSteps
     << " " << finalParam.transpose() << std::endl;
 
-  std::cout << algoName << " cubic b-spline elapsed time: "
+  std::cout << algoName << " " << interpName << " elapsed time: "
     << elapsedTime << " ms" << std::endl;
-  std::cout << algoName << " cubic b-spline elapsed steps: "
+  std::cout << algoName << " " << interpName << " elapsed steps: "
     << elapsedSteps << std::endl;
 }
 
@@ -267,28 +268,28 @@ int main(int argc, char* argv[]) {
       std::cout << "step " << step << std::endl;
 
       if(isTrilinear) {
-        runAlgo(&algo1TrilinearMinimizer, &newVolume, &outputFile, "algo1");
-        runAlgo(&algo2TrilinearMinimizer, &newVolume, &outputFile, "algo2");
-        runAlgo(&algo3TrilinearMinimizer, &newVolume, &outputFile, "algo3");
-        runAlgo(&algo4TrilinearMinimizer, &newVolume, &outputFile, "algo4");
-        runAlgo(&algo5TrilinearMinimizer, &newVolume, &outputFile, "algo5");
-        runAlgo(&algo6TrilinearMinimizer, &newVolume, &outputFile, "algo6");
+        runAlgo(&algo1TrilinearMinimizer, &newVolume, &outputFile, "algo1", "trilinear");
+        runAlgo(&algo2TrilinearMinimizer, &newVolume, &outputFile, "algo2", "trilinear");
+        runAlgo(&algo3TrilinearMinimizer, &newVolume, &outputFile, "algo3", "trilinear");
+        runAlgo(&algo4TrilinearMinimizer, &newVolume, &outputFile, "algo4", "trilinear");
+        runAlgo(&algo5TrilinearMinimizer, &newVolume, &outputFile, "algo5", "trilinear");
+        runAlgo(&algo6TrilinearMinimizer, &newVolume, &outputFile, "algo6", "trilinear");
       }
       if(isTricubic) {
-        runAlgo(&algo1TricubicMinimizer, &newVolume, &outputFile, "algo1");
-        runAlgo(&algo2TricubicMinimizer, &newVolume, &outputFile, "algo2");
-        runAlgo(&algo3TricubicMinimizer, &newVolume, &outputFile, "algo3");
-        runAlgo(&algo4TricubicMinimizer, &newVolume, &outputFile, "algo4");
-        runAlgo(&algo5TricubicMinimizer, &newVolume, &outputFile, "algo5");
-        runAlgo(&algo6TricubicMinimizer, &newVolume, &outputFile, "algo6");
+        runAlgo(&algo1TricubicMinimizer, &newVolume, &outputFile, "algo1", "tricubic");
+        runAlgo(&algo2TricubicMinimizer, &newVolume, &outputFile, "algo2", "tricubic");
+        runAlgo(&algo3TricubicMinimizer, &newVolume, &outputFile, "algo3", "tricubic");
+        runAlgo(&algo4TricubicMinimizer, &newVolume, &outputFile, "algo4", "tricubic");
+        runAlgo(&algo5TricubicMinimizer, &newVolume, &outputFile, "algo5", "tricubic");
+        runAlgo(&algo6TricubicMinimizer, &newVolume, &outputFile, "algo6", "tricubic");
       }
       if(isCubicBSpline) {
-        runAlgo(&algo1CubicBSplineMinimizer, &newVolume, &outputFile, "algo1");
-        runAlgo(&algo2CubicBSplineMinimizer, &newVolume, &outputFile, "algo2");
-        runAlgo(&algo3CubicBSplineMinimizer, &newVolume, &outputFile, "algo3");
-        runAlgo(&algo4CubicBSplineMinimizer, &newVolume, &outputFile, "algo4");
-        runAlgo(&algo5CubicBSplineMinimizer, &newVolume, &outputFile, "algo5");
-        runAlgo(&algo6CubicBSplineMinimizer, &newVolume, &outputFile, "algo6");
+        runAlgo(&algo1CubicBSplineMinimizer, &newVolume, &outputFile, "algo1", "cubic b-spline");
+        runAlgo(&algo2CubicBSplineMinimizer, &newVolume, &outputFile, "algo2", "cubic b-spline");
+        runAlgo(&algo3CubicBSplineMinimizer, &newVolume, &outputFile, "algo3", "cubic b-spline");
+        runAlgo(&algo4CubicBSplineMinimizer, &newVolume, &outputFile, "algo4", "cubic b-spline");
+        runAlgo(&algo5CubicBSplineMinimizer, &newVolume, &outputFile, "algo5", "cubic b-spline");
+        runAlgo(&algo6CubicBSplineMinimizer, &newVolume, &outputFile, "algo6", "cubic b-spline");
       }
     }
   }
