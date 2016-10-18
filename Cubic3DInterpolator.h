@@ -26,7 +26,11 @@ class Cubic3DInterpolator : public Interpolator3D<VolumeT, CoordT> {
       xFrac = std::modf(x, &xInt);
       yFrac = std::modf(y, &yInt);
       zFrac = std::modf(z, &zInt);
-   
+
+      const size_t xIntSizeT = xInt;
+      const size_t yIntSizeT = yInt;
+      const size_t zIntSizeT = zInt;
+
       // ideally we don't want to allocate these on every call to interp
       // but for right now this ensures the method is thread-safe
       CoordT target_YArr[64];
@@ -35,8 +39,7 @@ class Cubic3DInterpolator : public Interpolator3D<VolumeT, CoordT> {
       fill_target_Y(target_YArr, zFrac, yFrac, xFrac);
       return target_YVec.dot(
         coefficients.col(
-          (((size_t) zInt) * cubeSize + ((size_t) yInt)) *
-            cubeSize + ((size_t) xInt)
+          (zIntSizeT * cubeSize + yIntSizeT) * cubeSize + xIntSizeT
           )
         );
     }

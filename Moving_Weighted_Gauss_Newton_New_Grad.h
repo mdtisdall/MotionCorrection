@@ -26,13 +26,13 @@ template <
   >
 class Moving_Weighted_Gauss_Newton_New_Grad : 
   Gauss_Newton <
-    StaticWeightedResidualOp<_InterpolatorT>,
+    StaticWeightedResidualOp<_WeightFuncT, _InterpolatorT>,
     MovingWeightedResidualGradientAndHessian<
       typename _InterpolatorT::VolumeT,
       typename _InterpolatorT::CoordT,
       _WeightFuncT,
       _WeightGradientFuncT,
-      StaticWeightedResidualOp<_InterpolatorT>
+      StaticWeightedResidualOp<_WeightFuncT, _InterpolatorT>
       >,
     _InterpolatorT, 
     _ParamAccumulatorT,
@@ -43,10 +43,10 @@ class Moving_Weighted_Gauss_Newton_New_Grad :
       typename _InterpolatorT::CoordT,
       _WeightFuncT,
       _WeightGradientFuncT,
-      StaticWeightedResidualOp<_InterpolatorT>
+      StaticWeightedResidualOp<_WeightFuncT, _InterpolatorT>
       > ResidualGradientAndHessianT;
     typedef Gauss_Newton <
-      StaticWeightedResidualOp<_InterpolatorT>,
+      StaticWeightedResidualOp<_WeightFuncT, _InterpolatorT>,
       ResidualGradientAndHessianT, 
       _InterpolatorT,
       _ParamAccumulatorT,
@@ -69,7 +69,7 @@ class Moving_Weighted_Gauss_Newton_New_Grad :
       ) :
       Parent(
         interpRef,
-        new ResidualOpT(cubeSize, interpRef),
+        new ResidualOpT(cubeSize, weightFunc, interpRef),
         new ResidualGradientAndHessianT(
           cubeSize, weightFunc, weightGradientFunc, NULL, NULL),
         cubeSize) {
@@ -96,6 +96,7 @@ class Moving_Weighted_Gauss_Newton_New_Grad :
       const T stepSizeLimit = 0,
       ConvergenceTestT *convergenceTest = NULL, 
       size_t *elapsedSteps = NULL, 
+      size_t *elapsedSearchSteps = NULL, 
       double *elapsedTime = NULL,
       double *gradientAndHessianComputeTime = NULL
       ) {
@@ -120,7 +121,7 @@ class Moving_Weighted_Gauss_Newton_New_Grad :
         initialParam, finalParam,
         maxSteps, stepSizeScale, stepSizeLimit,
         convergenceTest, 
-        elapsedSteps);
+        elapsedSteps, elapsedSearchSteps);
 
       if(NULL != elapsedTime) { 
         gettimeofday(&timeAfter, NULL);

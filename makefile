@@ -1,5 +1,5 @@
-#VERSION = DEBUG
-VERSION = RELEASE
+VERSION = DEBUG
+#VERSION = RELEASE
 
 CXXFLAGS += -I./
 #CXXFLAGS += -I/Users/dylan/Documents/Research/Students/Diana/MotionCorrection
@@ -17,6 +17,7 @@ endif
 ifeq ($(VERSION), RELEASE)                                                      
 CXXFLAGS += -g
 CXXFLAGS += -O3
+CXXFLAGS += -funroll-loops
 LDFLAGS += -O3
 endif  
 
@@ -43,20 +44,20 @@ fit_nav_reps: FFTWBuffer.o FFTOp.o
 
 TESTOBJECTS += FFTWBuffer.o
 TESTOBJECTS += FFTOp.o
-#TESTOBJECTS += BinaryFile_tests.o
-#TESTOBJECTS += Volume_tests.o
-#TESTOBJECTS += FFTWBuffer_tests.o
-#TESTOBJECTS += CentralDifferenceDifferentiator_tests.o
-#TESTOBJECTS += TrilinearInterpolator_tests.o
-#TESTOBJECTS += TricubicInterpolator_tests.o
-#TESTOBJECTS += CubicBSplineInterpolator_tests.o
-#TESTOBJECTS += FFTOp_tests.o
+TESTOBJECTS += BinaryFile_tests.o
+TESTOBJECTS += Volume_tests.o
+TESTOBJECTS += FFTWBuffer_tests.o
+TESTOBJECTS += CentralDifferenceDifferentiator_tests.o
+TESTOBJECTS += TrilinearInterpolator_tests.o
+TESTOBJECTS += TricubicInterpolator_tests.o
+TESTOBJECTS += CubicBSplineInterpolator_tests.o
+TESTOBJECTS += FFTOp_tests.o
 TESTOBJECTS += Static_Weighted_Gauss_Newton_New_Grad_tests.o
 TESTOBJECTS += Moving_Weighted_Gauss_Newton_Ref_Grad_tests.o
 TESTOBJECTS += Moving_Weighted_Gauss_Newton_New_Grad_tests.o
-#TESTOBJECTS += CircularMaskOp_tests.o
-#TESTOBJECTS += WeightFunction_tests.o
-#TESTOBJECTS += DerivWeightFunction_tests.o
+TESTOBJECTS += CircularMaskOp_tests.o
+TESTOBJECTS += WeightFunction_tests.o
+TESTOBJECTS += DerivWeightFunction_tests.o
 
 test: $(TESTOBJECTS)
 

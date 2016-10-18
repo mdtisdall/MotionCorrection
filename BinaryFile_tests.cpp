@@ -1,6 +1,5 @@
 #include "catch.hpp"
 
-#include "ReadFile.h"
 #include "BinaryFile.h"
 #include "Interpolation_3D.h"
 

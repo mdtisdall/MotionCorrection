@@ -49,9 +49,6 @@ class Linear3DInterpolator : public Interpolator3D<VolumeT, CoordT> {
       cubeSize(volume->cubeSize) {}
 
     void fill_target_Y(T* target_YArr, const T z, const T y, const T x) const {
-        T xSq = x*x;
-        T xCubed = xSq * x;
-
         target_YArr[0] = (T) 1.0;
         target_YArr[1] = x; //x
         target_YArr[2] = y; //y

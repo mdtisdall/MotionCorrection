@@ -24,7 +24,7 @@ template <
   >
 class Static_Weighted_Gauss_Newton_New_Grad : 
   Gauss_Newton <
-    StaticWeightedResidualOp<_InterpolatorT>,
+    StaticWeightedResidualOp<_WeightFuncT, _InterpolatorT>,
     StaticWeightedResidualGradientAndHessian<
       typename _InterpolatorT::VolumeT,
       typename _InterpolatorT::CoordT,
@@ -35,7 +35,7 @@ class Static_Weighted_Gauss_Newton_New_Grad :
     _ConvergenceTestT >{
   public:
     typedef Gauss_Newton <
-      StaticWeightedResidualOp<_InterpolatorT>,
+      StaticWeightedResidualOp<_WeightFuncT, _InterpolatorT>,
       StaticWeightedResidualGradientAndHessian<
         typename _InterpolatorT::VolumeT,
         typename _InterpolatorT::CoordT,
@@ -62,7 +62,7 @@ class Static_Weighted_Gauss_Newton_New_Grad :
       ) :
       Parent(
         interpRef,
-        new ResidualOpT(cubeSize, interpRef),
+        new ResidualOpT(cubeSize, weightFunc, interpRef),
         new ResidualGradientAndHessianT(cubeSize, weightFunc),
         cubeSize) {}
 
@@ -84,6 +84,7 @@ class Static_Weighted_Gauss_Newton_New_Grad :
       const T stepSizeLimit = 0,
       ConvergenceTestT *convergenceTest = NULL, 
       size_t *elapsedSteps = NULL, 
+      size_t *elapsedSearchSteps = NULL, 
       double *elapsedTime = NULL,
       double *gradientAndHessianComputeTime = NULL
       ) {
@@ -108,7 +109,7 @@ class Static_Weighted_Gauss_Newton_New_Grad :
         initialParam, finalParam,
         maxSteps, stepSizeScale, stepSizeLimit,
         convergenceTest, 
-        elapsedSteps);
+        elapsedSteps, elapsedSearchSteps);
 
       if(NULL != elapsedTime) { 
         gettimeofday(&timeAfter, NULL);

@@ -42,7 +42,8 @@ protected:
   virtual void registerNewVolumeInner( 
     VolumeT *newVol,
     ParamT *p, 
-    size_t *elapsedSteps) {
+    size_t *elapsedSteps,
+    size_t *elapsedSearchSteps) {
     
     ParamT initialParam; 
     initialParam << 0, 0, 0, 0, 0, 0;
@@ -63,7 +64,7 @@ protected:
       &initialParam, p,
       this->maxSteps, this->stepSizeScale, this->stepSizeLimit,
       this->convergenceTest,
-      elapsedSteps, NULL);
+      elapsedSteps, elapsedSearchSteps, NULL);
   }
 
   MinimizerT minimizer;

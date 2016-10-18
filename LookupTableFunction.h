@@ -14,23 +14,47 @@ class FunctionLookupTable  {
     const FuncType *func
   ) :
   cubeSize(cubeSize),
-  func(func),
   lut(lutSize),
   lutResolution(
     ( (T) cubeSize) / 
     ( (T) (2 * (lutSize - 1) ) ) ),
   invLUTResolution(((T) 1.0) / lutResolution) {
-    populateLUT(); 
+    populateLUT(func); 
+  }
+  
+  FunctionLookupTable(
+    const T cubeSize,
+    const size_t lutSize
+  ) :
+  cubeSize(cubeSize),
+  lut(lutSize),
+  lutResolution(
+    ( (T) cubeSize) / 
+    ( (T) (2 * (lutSize - 1) ) ) ),
+  invLUTResolution(((T) 1.0) / lutResolution) {
+    FuncType func(cubeSize);
+    populateLUT(&func); 
   }
 
 
   public:
+  T operator() (T z, T y, T x) const {
+    return (*this)( std::sqrt(z*z + y*y + x*x) );   
+  }
+
   T operator() (T radius) const {
-    return lut[(size_t) (radius * invLUTResolution)];
+    size_t lookupIndex = radius * invLUTResolution;
+
+    if(lookupIndex >= lut.size()) {
+      return 0; 
+    }
+    else {
+      return lut[lookupIndex];
+    }
   }
 
   protected:
-  void populateLUT() {
+  void populateLUT(const FuncType *func) {
     for(size_t i = 0; i < lut.size(); i++) {
       lut[i] = (*func)(i * lutResolution);
     }
@@ -40,7 +64,6 @@ class FunctionLookupTable  {
   const T cubeSize;
   const T lutResolution;
   const T invLUTResolution;
-  const FuncType *func;
   std::vector<T> lut;
 };
 

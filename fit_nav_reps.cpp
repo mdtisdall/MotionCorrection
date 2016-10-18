@@ -34,6 +34,7 @@ void runAlgo(
   ParamT finalParam;
   double elapsedTime;
   size_t elapsedSteps;
+  size_t elapsedSearchSteps;
 
   // make a local copy since some of the operations we'll perform may be
   // destructive and we want to keep the original buffer clean.
@@ -43,7 +44,7 @@ void runAlgo(
     newVolume->totalPoints * sizeof(dataT));
 
   algo->registerNewVolume(&localNewVolume, &finalParam,
-    &elapsedTime, &elapsedSteps);
+    &elapsedTime, &elapsedSteps, &elapsedSearchSteps);
   
   (*outputFile) << elapsedTime << " " << elapsedSteps
     << " " << finalParam.transpose() << std::endl;
@@ -52,6 +53,8 @@ void runAlgo(
     << elapsedTime << " ms" << std::endl;
   std::cout << algoName << " " << interpName << " elapsed steps: "
     << elapsedSteps << std::endl;
+  std::cout << algoName << " " << interpName << " elapsed search steps: "
+    << elapsedSearchSteps << std::endl;
 }
 
 int main(int argc, char* argv[]) {

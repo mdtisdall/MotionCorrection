@@ -145,6 +145,7 @@ class Gauss_Newton {
       const T stepSizeLimit = 10e-6,
       const ConvergenceTestT *convergenceTest = NULL, 
       size_t *elapsedSteps = NULL,
+      size_t *elapsedSearchSteps = NULL,
       double *elapsedTime = NULL 
       ) {
       struct timeval timeBefore, timeAfter;
@@ -164,6 +165,7 @@ class Gauss_Newton {
 
       ParamT reducedResidual;
       size_t step = 0;
+      size_t searchStep = 0;
     
       computeResidual(newVolume, &curParam);
 
@@ -251,6 +253,8 @@ class Gauss_Newton {
         ParamT paramUpdate;
 
         while(!improved && stepSize >= stepSizeLimit) {
+          searchStep++;
+
           // negate this to get the correct sign for the update
           paramUpdate = -negParamUpdateDirection * stepSize;
           
@@ -300,6 +304,10 @@ class Gauss_Newton {
 
       if(NULL != elapsedSteps) {
         *elapsedSteps = step; 
+      }
+      
+      if(NULL != elapsedSearchSteps) {
+        *elapsedSearchSteps = searchStep; 
       }
 
       *finalParam = curParam;

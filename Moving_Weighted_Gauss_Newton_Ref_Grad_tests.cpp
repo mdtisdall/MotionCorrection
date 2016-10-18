@@ -89,12 +89,14 @@ TEST_CASE("a Gauss-Newton minimizer using moving weights and reference-image gra
   
     double elapsedTime;
     size_t elapsedSteps;
+    size_t elapsedSearchSteps;
   
     minimizer.minimize(&volume, 
       &initialParam, &finalParam,
       maxSteps, stepSizeScale, stepSizeLimit,
       &convergenceTest,
-      &elapsedSteps, &elapsedTime, &gradientAndHessianComputeTime);
+      &elapsedSteps, &elapsedSearchSteps,
+      &elapsedTime, &gradientAndHessianComputeTime);
     
     WARN("elapsed time computing gradient and Hessian: "
       << gradientAndHessianComputeTime << " ms");
@@ -219,12 +221,14 @@ TEST_CASE("a Gauss-Newton minimizer using moving weights, moving M, and referenc
  
         double elapsedTime;
         size_t elapsedSteps;
+        size_t elapsedSearchSteps;
   
         minimizer.minimize(&maskedNewVolume, 
           &initialParam, &finalParam,
           maxSteps, stepSizeScale, stepSizeLimit,
           NULL,
-          &elapsedSteps, &elapsedTime, &gradientAndHessianComputeTime);
+          &elapsedSteps, &elapsedSearchSteps,
+          &elapsedTime, &gradientAndHessianComputeTime);
       
         WARN("elapsed time computing gradient and Hessian: "
           << gradientAndHessianComputeTime << " ms");
@@ -278,12 +282,14 @@ TEST_CASE("a Gauss-Newton minimizer using moving weights, moving M, and referenc
  
         double elapsedTime;
         size_t elapsedSteps;
+        size_t elapsedSearchSteps;
   
         minimizer.minimize(&maskedNewVolume,
           &initialParam, &finalParam,
           maxSteps, stepSizeScale, stepSizeLimit,
           NULL,
-          &elapsedSteps, &elapsedTime, &gradientAndHessianComputeTime);
+          &elapsedSteps, &elapsedSearchSteps,
+          &elapsedTime, &gradientAndHessianComputeTime);
       
         WARN("elapsed time computing gradient and Hessian: "
           << gradientAndHessianComputeTime << " ms");

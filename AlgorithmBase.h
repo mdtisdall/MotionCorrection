@@ -15,6 +15,7 @@
 
 #include "WeightFunction.h"
 #include "DerivWeightFunction.h"
+#include "LookupTableFunction.h"
 
 #include <sys/time.h>
 
@@ -31,13 +32,15 @@ class AlgorithmBase {
   typedef DataVolumeT VolumeT;
   typedef typename DataVolumeT::value_type dataT;
   typedef typename Eigen::Matrix<dataT, 6, 1> ParamT;
-  typedef WeightFunction<dataT> WeightFunctionT;
-  typedef DerivWeightFunction<dataT> WeightGradientFunctionT;
+  typedef FunctionLookupTable< WeightFunction<dataT> >
+    WeightFunctionT;
+  typedef FunctionLookupTable< DerivWeightFunction<dataT> >
+    WeightGradientFunctionT;
   typedef FFTOp<dataT> DataFFTOpT;
   typedef typename DataFFTOpT::fourierVolumeT ComplexVolumeT; 
   typedef CircularMaskOp< ComplexVolumeT, 
     SymmetricHalfVolumeAtAddressable< FFTWBuffer<dataT> >,
-    WeightFunctionT >
+    WeightFunction<dataT> >
     ComplexDataCircularMaskOpT;
 
   
@@ -50,12 +53,13 @@ class AlgorithmBase {
     cubeSize(refVol->cubeSize),
     cubeVectorLength(refVol->totalPoints),
     interpolator(NULL),
-    weightFunction(cubeSize),
-    weightGradientFunction(cubeSize),
+    weightFunction(cubeSize, 10e6),
+    weightGradientFunction(cubeSize, 10e6),
+    weightFunctionCircMaskOp(cubeSize),
     fourierMaskedRefVol(cubeSize),
     fourierMaskedNewVol(cubeSize),
     fourierMaskOp(cubeSize,
-      &weightFunction,
+      &weightFunctionCircMaskOp,
       1.0/(refVol->max() * ((dataT) cubeVectorLength))),
     fourierData(cubeSize),
     fftOp(cubeSize),
@@ -79,7 +83,8 @@ class AlgorithmBase {
     DataVolumeT *newVol,
     ParamT *p,
     double *elapsedTime,
-    size_t *elapsedSteps) {
+    size_t *elapsedSteps,
+    size_t *elapsedSearchSteps) {
     struct timeval timeBefore, timeAfter;
 
     if(NULL != elapsedTime) {
@@ -88,7 +93,8 @@ class AlgorithmBase {
    
     this->fourierMaskVolume(newVol, &fourierMaskedNewVol);
 
-    registerNewVolumeInner(&fourierMaskedNewVol, p, elapsedSteps);
+    registerNewVolumeInner(
+      &fourierMaskedNewVol, p, elapsedSteps, elapsedSearchSteps);
 
     if(NULL != elapsedTime) { 
       gettimeofday(&timeAfter, NULL);
@@ -104,7 +110,8 @@ class AlgorithmBase {
   virtual void registerNewVolumeInner( 
     DataVolumeT *newVol,
     ParamT *p, 
-    size_t *elapsedSteps) = 0;
+    size_t *elapsedSteps,
+    size_t *elapsedSearchSteps) = 0;
 
   void fourierMaskVolume(DataVolumeT *inVol, DataVolumeT *fourierMaskedVol) { 
     fftOp.forward(inVol, &fourierData); 
@@ -124,6 +131,7 @@ class AlgorithmBase {
   InterpolatorT *interpolator;
   WeightFunctionT weightFunction;
   WeightGradientFunctionT weightGradientFunction;
+  WeightFunction<dataT> weightFunctionCircMaskOp;
   DataVolumeT fourierMaskedRefVol;
   DataVolumeT fourierMaskedNewVol;
   ComplexDataCircularMaskOpT fourierMaskOp;

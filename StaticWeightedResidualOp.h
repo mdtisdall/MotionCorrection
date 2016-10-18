@@ -3,9 +3,8 @@
 
 #include "ResidualOpBase.h"
 
-#include "WeightFunction.h"
-
 template <
+  typename _WeightFunctionT,
   typename _InterpolatorT
   >
 class StaticWeightedResidualOp :
@@ -15,6 +14,7 @@ class StaticWeightedResidualOp :
 
 public:
   typedef _InterpolatorT InterpolatorT;
+  typedef _WeightFunctionT WeightFunctionT;
   typedef typename InterpolatorT::VolumeT VolumeT;
   typedef typename InterpolatorT::CoordT CoordT;
   typedef typename VolumeT::value_type T;
@@ -34,10 +34,11 @@ public:
 public:
   StaticWeightedResidualOp(
     const size_t cubeSize,
+    const WeightFunctionT *weightFunc,
     const InterpolatorT *interpRef) :
     ParentT(cubeSize),
+    weightFunc(weightFunc),
     interpRef(interpRef),
-    weightFunc(cubeSize),
     interpPoints(cubeSize * cubeSize * cubeSize, 1),
     weightPoints(cubeSize * cubeSize * cubeSize, 1),
     unweightedResidual(cubeSize * cubeSize * cubeSize, 1)
@@ -56,7 +57,8 @@ public:
       PointT curPoint =
         points->col(offset) ;
 
-      PointT wrappedPoint = curPoint + this->cubeCenterPoint;
+      PointT wrappedPoint;
+      wrappedPoint.noalias() = curPoint + this->cubeCenterPoint;
 
       for(size_t i = 0; i < 3; i++) {
         wrappedPoint(i) = newVol->wrapIndex(wrappedPoint(i));
@@ -74,14 +76,16 @@ public:
       for(size_t i = 0; i < 3; i++) {
         weightPoint(i) = newVol->wrapCoord(curPoint(i));
       }
-
+/*
       weightPoints(offset, 0) =
-        weightFunc(
+        (*weightFunc)(
           weightPoint(0),
           weightPoint(1),
           weightPoint(2)
         ); 
-      
+*/      
+      weightPoints(offset, 0) = (*weightFunc)( weightPoint.norm() ); 
+
 //      if(12305 == offset) {
 //        std::cout << "points[12305]: " << points->col(offset).transpose() << std::endl;
 //        std::cout << "wrappedPoint[12305]: " << wrappedPoint.transpose() << std::endl;
@@ -105,7 +109,7 @@ public:
 
 protected:
   const InterpolatorT *interpRef;
-  const WeightFunction<T> weightFunc;
+  const WeightFunctionT  *weightFunc;
   ResidualT interpPoints;
   ResidualT weightPoints;
   ResidualT unweightedResidual;
