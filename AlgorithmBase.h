@@ -11,6 +11,8 @@
 
 #include "CubicBSplineInterpolator.h"
 
+#include "UpsampledTrilinearInterpolator.h"
+
 #include "CircularMaskOp.h"
 
 #include "WeightFunction.h"
@@ -230,6 +232,34 @@ class AlgorithmInterpolatorFactory<
   static InterpolatorT* newInterpolator(
     DataVolumeT *fourierMaskedRefVol) {
     return new InterpolatorT(fourierMaskedRefVol);
+  }
+};
+
+template <typename DataVolumeT, int upsamplingFactor>
+class AlgorithmInterpolatorFactory<
+    UpsampledTrilinearInterpolator<
+      CubicBSplineInterpolator<
+        DataVolumeT, typename DataVolumeT::value_type >,
+      upsamplingFactor,
+      DataVolumeT, typename DataVolumeT::value_type >
+  > {
+  protected: 
+  typedef CubicBSplineInterpolator<
+    DataVolumeT,
+    typename DataVolumeT::value_type
+    > UpsamplingInterpolatorT;
+  
+  typedef UpsampledTrilinearInterpolator<
+    UpsamplingInterpolatorT, upsamplingFactor,
+    DataVolumeT, typename DataVolumeT::value_type
+    > InterpolatorT;
+
+  public:
+
+  static InterpolatorT* newInterpolator(
+    DataVolumeT *fourierMaskedRefVol) {
+    UpsamplingInterpolatorT upsamplingInterpolator(fourierMaskedRefVol);
+    return new InterpolatorT(fourierMaskedRefVol, &upsamplingInterpolator);
   }
 };
 

@@ -35,9 +35,13 @@ class Linear3DInterpolator : public Interpolator3D<VolumeT, CoordT> {
       fill_target_Y(target_YArr, zFrac, yFrac, xFrac);
       return target_YVec.dot(
         coefficients.col(
-          (((size_t) zInt) * cubeSize + ((size_t) yInt)) *
-            cubeSize + ((size_t) xInt)
+          ( zInt * cubeSizeCoordT + yInt) *
+            cubeSizeCoordT + xInt
           )
+//        coefficients.col(
+//          (((size_t) zInt) * cubeSize + ((size_t) yInt)) *
+//            cubeSize + ((size_t) xInt)
+//          )
         );
     }
 
@@ -46,7 +50,8 @@ class Linear3DInterpolator : public Interpolator3D<VolumeT, CoordT> {
       Interpolator3D<VolumeT, CoordT>(volume),
       coefficientsInner(volume->totalPoints * 8),
       coefficients(&(coefficientsInner[0]), 8, volume->totalPoints),
-      cubeSize(volume->cubeSize) {}
+      cubeSize(volume->cubeSize),
+      cubeSizeCoordT(volume->cubeSize) {}
 
     void fill_target_Y(T* target_YArr, const T z, const T y, const T x) const {
         target_YArr[0] = (T) 1.0;
@@ -65,6 +70,7 @@ class Linear3DInterpolator : public Interpolator3D<VolumeT, CoordT> {
     std::vector<T> coefficientsInner;
     Eigen::Map< Matrix_8_X_T > coefficients;
     const size_t cubeSize;
+    const CoordT cubeSizeCoordT;
 
 };
 #endif

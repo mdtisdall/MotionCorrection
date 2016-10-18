@@ -67,6 +67,9 @@ int main(int argc, char* argv[]) {
   typedef TrilinearInterpolator<VolumeT, dataT> TrilinearInterpolatorT; 
   typedef TricubicInterpolator<VolumeT, dataT> TricubicInterpolatorT; 
   typedef CubicBSplineInterpolator<VolumeT, dataT> CubicBSplineInterpolatorT; 
+  typedef UpsampledTrilinearInterpolator<
+    CubicBSplineInterpolatorT, 8, VolumeT, dataT>
+    CubicBSplineUpsampledTrilinearInterpolatorT; 
   
   size_t cubeSize;
   std::string basePath;
@@ -77,6 +80,7 @@ int main(int argc, char* argv[]) {
   bool isTrilinear = false;
   bool isTricubic = false;
   bool isCubicBSpline = false;
+  bool isUpsampledTrilinear = false;
 
   try {
     TCLAP::CmdLine cmd("Registering vNav volumes", ' ', "dev");
@@ -88,11 +92,13 @@ int main(int argc, char* argv[]) {
     TCLAP::SwitchArg linearInterpArg("", "linear", "Use trilinear interpoloation", false);
     TCLAP::SwitchArg cubicInterpArg("", "cubic", "Use tricubic interpoloation", false);
     TCLAP::SwitchArg cubicBSplineInterpArg("", "cubicBSpline", "Use cubic B-spline interpoloation", false);
+    TCLAP::SwitchArg upsampledLinearInterpArg("", "upsampled-linear", "Use cubic B-spline upsampled data with trilinear interpoloation", false);
 
     std::vector<TCLAP::Arg*>  xorlist;
     xorlist.push_back(&linearInterpArg);
     xorlist.push_back(&cubicInterpArg);
     xorlist.push_back(&cubicBSplineInterpArg);
+    xorlist.push_back(&upsampledLinearInterpArg);
 
     cmd.xorAdd( xorlist );
 
@@ -109,6 +115,7 @@ int main(int argc, char* argv[]) {
     isTrilinear = linearInterpArg.getValue();
     isTricubic = cubicInterpArg.getValue();
     isCubicBSpline = cubicBSplineInterpArg.getValue();
+    isUpsampledTrilinear = upsampledLinearInterpArg.getValue();
 
   }   catch (TCLAP::ArgException &e) {
     std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
@@ -164,6 +171,12 @@ int main(int argc, char* argv[]) {
       CentralDiffDifferentiatorT,
       MMParamTestT
       > algo1CubicBSplineMinimizer( &refVolume, &convergenceTest);
+    
+    Algorithm1<
+      CubicBSplineUpsampledTrilinearInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo1UpsampledTrilinearMinimizer( &refVolume, &convergenceTest);
      
     Algorithm2<
       TrilinearInterpolatorT,
@@ -182,6 +195,12 @@ int main(int argc, char* argv[]) {
       CentralDiffDifferentiatorT,
       MMParamTestT
       > algo2CubicBSplineMinimizer( &refVolume, &convergenceTest);
+    
+    Algorithm2<
+      CubicBSplineUpsampledTrilinearInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo2UpsampledTrilinearMinimizer( &refVolume, &convergenceTest);
      
     Algorithm3<
       TrilinearInterpolatorT,
@@ -201,6 +220,12 @@ int main(int argc, char* argv[]) {
       MMParamTestT
       > algo3CubicBSplineMinimizer( &refVolume, &convergenceTest);
     
+    Algorithm3<
+      CubicBSplineUpsampledTrilinearInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo3UpsampledTrilinearMinimizer( &refVolume, &convergenceTest);
+    
     Algorithm4<
       TrilinearInterpolatorT,
       CentralDiffDifferentiatorT,
@@ -218,6 +243,12 @@ int main(int argc, char* argv[]) {
       CentralDiffDifferentiatorT,
       MMParamTestT
       > algo4CubicBSplineMinimizer( &refVolume, &convergenceTest);
+    
+    Algorithm4<
+      CubicBSplineUpsampledTrilinearInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo4UpsampledTrilinearMinimizer( &refVolume, &convergenceTest);
      
     Algorithm5<
       TrilinearInterpolatorT,
@@ -237,6 +268,12 @@ int main(int argc, char* argv[]) {
       MMParamTestT
       > algo5CubicBSplineMinimizer( &refVolume, &convergenceTest);
     
+    Algorithm5<
+      CubicBSplineUpsampledTrilinearInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo5UpsampledTrilinearMinimizer( &refVolume, &convergenceTest);
+    
     Algorithm6<
       TrilinearInterpolatorT,
       CentralDiffDifferentiatorT,
@@ -254,6 +291,12 @@ int main(int argc, char* argv[]) {
       CentralDiffDifferentiatorT,
       MMParamTestT
       > algo6CubicBSplineMinimizer( &refVolume, &convergenceTest);
+    
+    Algorithm6<
+      CubicBSplineUpsampledTrilinearInterpolatorT,
+      CentralDiffDifferentiatorT,
+      MMParamTestT
+      > algo6UpsampledTrilinearMinimizer( &refVolume, &convergenceTest);
     
     VolumeT newVolume(cubeSize);
 
@@ -293,6 +336,14 @@ int main(int argc, char* argv[]) {
         runAlgo(&algo4CubicBSplineMinimizer, &newVolume, &outputFile, "algo4", "cubic b-spline");
         runAlgo(&algo5CubicBSplineMinimizer, &newVolume, &outputFile, "algo5", "cubic b-spline");
         runAlgo(&algo6CubicBSplineMinimizer, &newVolume, &outputFile, "algo6", "cubic b-spline");
+      }
+      if(isUpsampledTrilinear) {
+        runAlgo(&algo1UpsampledTrilinearMinimizer, &newVolume, &outputFile, "algo1", "upsampled trilinear");
+        runAlgo(&algo2UpsampledTrilinearMinimizer, &newVolume, &outputFile, "algo2", "upsampled trilinear");
+        runAlgo(&algo3UpsampledTrilinearMinimizer, &newVolume, &outputFile, "algo3", "upsampled trilinear");
+        runAlgo(&algo4UpsampledTrilinearMinimizer, &newVolume, &outputFile, "algo4", "upsampled trilinear");
+        runAlgo(&algo5UpsampledTrilinearMinimizer, &newVolume, &outputFile, "algo5", "upsampled trilinear");
+        runAlgo(&algo6UpsampledTrilinearMinimizer, &newVolume, &outputFile, "algo6", "upsampled trilinear");
       }
     }
   }

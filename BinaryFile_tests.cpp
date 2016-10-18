@@ -1,7 +1,6 @@
 #include "catch.hpp"
 
 #include "BinaryFile.h"
-#include "Interpolation_3D.h"
 
 #include <vector>
 #include <complex>
