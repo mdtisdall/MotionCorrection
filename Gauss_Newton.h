@@ -142,7 +142,6 @@ class Gauss_Newton {
       ParamT *finalParam,
       const size_t maxSteps = 20,
       const T stepSizeScale = 0.25,
-      const T stepSizeLimit = 10e-6,
       const ConvergenceTestT *convergenceTest = NULL, 
       size_t *elapsedSteps = NULL,
       size_t *elapsedSearchSteps = NULL,
@@ -252,12 +251,21 @@ class Gauss_Newton {
 
         ParamT paramUpdate;
 
-        while(!improved && stepSize >= stepSizeLimit) {
+        while(!improved) {
           searchStep++;
 
           // negate this to get the correct sign for the update
           paramUpdate = -negParamUpdateDirection * stepSize;
-          
+ 
+          // now check to see if we've reached the convergence limit on our
+          // step size
+          if(
+            TestHelper<ConvergenceTestT>::eval(convergenceTest, &paramUpdate)
+            ) {
+              searchStep++; 
+              break; 
+          }
+
           ParamT newParam =
             ParamAccumulatorT::accumulate(&curParam, &paramUpdate);
 
@@ -282,18 +290,8 @@ class Gauss_Newton {
         if(!improved) {
           break;
         }
-
-        //
-        // now check to see if the steps have converged
-        //
-        
-        if(
-          TestHelper<ConvergenceTestT>::eval(convergenceTest, &paramUpdate)
-          ) {
-            step++; 
-            break; 
-        }
-
+       
+        // otherwise, we've found a good step, so we should apply it
         residualGradientAndHessian->updateResidualGradientAndApproxHessian(
           &transformedPointList,
           &curParam,

@@ -51,7 +51,6 @@ class AlgorithmBase {
     ConvergenceTestT *convergenceTest) :
     maxSteps(50),
     stepSizeScale(0.25),
-    stepSizeLimit(1e-5),
     cubeSize(refVol->cubeSize),
     cubeVectorLength(refVol->totalPoints),
     interpolator(NULL),
@@ -127,7 +126,6 @@ class AlgorithmBase {
 
   const size_t maxSteps;
   const dataT stepSizeScale;
-  const dataT stepSizeLimit;
   const size_t cubeSize;
   const size_t cubeVectorLength; 
   InterpolatorT *interpolator;

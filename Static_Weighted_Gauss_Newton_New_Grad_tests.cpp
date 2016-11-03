@@ -74,7 +74,6 @@ TEST_CASE("a Gauss-Newton minimizer using static weights and new-image gradients
  
       size_t maxSteps = 20;
       float stepSizeScale = 0.25;
-      float stepSizeLimit = 1.0;
 
 
       const dataT paramUpdate2NormLimit = 1e-6;
@@ -87,7 +86,7 @@ TEST_CASE("a Gauss-Newton minimizer using static weights and new-image gradients
    
       minimizer.minimize(&volume, &dz, &dy, &dx,
         &initialParam, &finalParam,
-        maxSteps, stepSizeScale, stepSizeLimit,
+        maxSteps, stepSizeScale,
         &convergenceTest,
         &elapsedSteps, &elapsedSearchSteps,
         &elapsedTime, &gradientAndHessianComputeTime);
@@ -206,7 +205,6 @@ TEST_CASE("a Gauss-Newton minimizer using static weights and new-image gradients
 
         size_t maxSteps = 20;
         dataT stepSizeScale = 0.25;
-        dataT stepSizeLimit = 1.0;
  
         double elapsedTime;
         size_t elapsedSteps;
@@ -214,7 +212,7 @@ TEST_CASE("a Gauss-Newton minimizer using static weights and new-image gradients
   
         minimizer.minimize(&maskedNewVolume, &dz, &dy, &dx,
           &initialParam, &finalParam,
-          maxSteps, stepSizeScale, stepSizeLimit,
+          maxSteps, stepSizeScale,
           NULL,
           &elapsedSteps, &elapsedSearchSteps,
           &elapsedTime, &gradientAndHessianComputeTime);
@@ -263,7 +261,6 @@ TEST_CASE("a Gauss-Newton minimizer using static weights and new-image gradients
         // point as the Mathematica code
         size_t maxSteps = 20;
         dataT stepSizeScale = 0.25;
-        dataT stepSizeLimit = 1.0;
  
         double elapsedTime;
         size_t elapsedSteps;
@@ -271,7 +268,7 @@ TEST_CASE("a Gauss-Newton minimizer using static weights and new-image gradients
   
         minimizer.minimize(&maskedNewVolume, &dz, &dy, &dx,
           &initialParam, &finalParam,
-          maxSteps, stepSizeScale, stepSizeLimit,
+          maxSteps, stepSizeScale,
           NULL,
           &elapsedSteps, &elapsedSearchSteps, 
           &elapsedTime, &gradientAndHessianComputeTime);

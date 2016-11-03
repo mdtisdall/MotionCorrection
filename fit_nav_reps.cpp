@@ -144,7 +144,7 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    const dataT paramUpdateMMLimit = 0.01;
+    const dataT paramUpdateMMLimit = 0.05;
 
     MMParamTestT convergenceTest(
       paramUpdateMMLimit,

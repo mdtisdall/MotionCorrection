@@ -80,7 +80,6 @@ TEST_CASE("a Gauss-Newton minimizer using moving weights and reference-image gra
  
     size_t maxSteps = 20;
     float stepSizeScale = 0.25;
-    float stepSizeLimit = 1.0;
 
 
     const dataT paramUpdate2NormLimit = 1e-6;
@@ -93,7 +92,7 @@ TEST_CASE("a Gauss-Newton minimizer using moving weights and reference-image gra
   
     minimizer.minimize(&volume, 
       &initialParam, &finalParam,
-      maxSteps, stepSizeScale, stepSizeLimit,
+      maxSteps, stepSizeScale,
       &convergenceTest,
       &elapsedSteps, &elapsedSearchSteps,
       &elapsedTime, &gradientAndHessianComputeTime);
@@ -217,7 +216,6 @@ TEST_CASE("a Gauss-Newton minimizer using moving weights, moving M, and referenc
 
         size_t maxSteps = 20;
         dataT stepSizeScale = 0.25;
-        dataT stepSizeLimit = 1.0;
  
         double elapsedTime;
         size_t elapsedSteps;
@@ -225,7 +223,7 @@ TEST_CASE("a Gauss-Newton minimizer using moving weights, moving M, and referenc
   
         minimizer.minimize(&maskedNewVolume, 
           &initialParam, &finalParam,
-          maxSteps, stepSizeScale, stepSizeLimit,
+          maxSteps, stepSizeScale,
           NULL,
           &elapsedSteps, &elapsedSearchSteps,
           &elapsedTime, &gradientAndHessianComputeTime);
@@ -278,7 +276,6 @@ TEST_CASE("a Gauss-Newton minimizer using moving weights, moving M, and referenc
         // point as the Mathematica code
         size_t maxSteps = 20;
         dataT stepSizeScale = 0.25;
-        dataT stepSizeLimit = 1.0;
  
         double elapsedTime;
         size_t elapsedSteps;
@@ -286,7 +283,7 @@ TEST_CASE("a Gauss-Newton minimizer using moving weights, moving M, and referenc
   
         minimizer.minimize(&maskedNewVolume,
           &initialParam, &finalParam,
-          maxSteps, stepSizeScale, stepSizeLimit,
+          maxSteps, stepSizeScale, 
           NULL,
           &elapsedSteps, &elapsedSearchSteps,
           &elapsedTime, &gradientAndHessianComputeTime);

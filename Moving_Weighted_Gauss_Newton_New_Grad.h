@@ -93,7 +93,6 @@ class Moving_Weighted_Gauss_Newton_New_Grad :
       ParamT *finalParam,
       const size_t maxSteps = 20,
       const T stepSizeScale = 0.25,
-      const T stepSizeLimit = 0,
       ConvergenceTestT *convergenceTest = NULL, 
       size_t *elapsedSteps = NULL, 
       size_t *elapsedSearchSteps = NULL, 
@@ -119,7 +118,7 @@ class Moving_Weighted_Gauss_Newton_New_Grad :
 
       Parent::minimize(newVolume, newdz, newdy, newdx,
         initialParam, finalParam,
-        maxSteps, stepSizeScale, stepSizeLimit,
+        maxSteps, stepSizeScale, 
         convergenceTest, 
         elapsedSteps, elapsedSearchSteps);
 

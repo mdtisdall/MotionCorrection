@@ -57,7 +57,7 @@ protected:
       newVol,
       &newVolDz, &newVolDy, &newVolDx, 
       &initialParam, p,
-      this->maxSteps, this->stepSizeScale, this->stepSizeLimit,
+      this->maxSteps, this->stepSizeScale,
       this->convergenceTest,
       elapsedSteps, elapsedSearchSteps, NULL);
   }
